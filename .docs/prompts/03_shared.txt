@@ -3,23 +3,18 @@ add code to the /shared directory.
 files:
 
 - shared/logger.py
-
 - shared/exceptions.py
 
 logger:
 
 set up a basic async-compatible logger using python's built-in logging module.
-
 log level set to debug for now, will move to log and above later.
-
 format should include timestamp, level, and message.
-
 keep it simple, one logger instance the other services can import.
 
 exceptions:
 
 one exception per failure point in the system.
-
 each one is a plain class, nothing more:
 
     class CustomerDeactivatedError(Exception): pass
@@ -43,17 +38,10 @@ the logger handles the detail, the exception just identifies what went wrong.
 pep8:
 
 follow the pep8 style guide at .claude/pep8_python.md.
-
 snake_case for everything, type hints on all functions, imports grouped
-
 and ordered (stdlib first, third party second, local last), no wildcard imports.
 
-
-
 remember, each class should contain docstring explaining what the class does, including the exceptions.
-
 follow the pep257 standard in .claude/pep257_python_docstring.md when writing the docstrings.
-
-
 
 remember, each line of code should contain a comment, following the pep8 standard.

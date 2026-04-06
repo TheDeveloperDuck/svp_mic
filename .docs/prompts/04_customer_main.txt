@@ -1,0 +1,26 @@
+create the entry point files for the customer_user_service.
+
+files:
+- customer_user_service/__init__.py
+- customer_user_service/main.py
+
+__init__.py:
+empty file, just marks the directory as a python package.
+
+main.py:
+set up the fastapi app instance.
+import and use the shared logger from shared/logger.py.
+import exceptions from shared/exceptions.py.
+register the routers when they are ready, leave as a placeholder comment for now.
+include a basic health check endpoint at /health that returns a 200 with a json status message.
+app should run on host 0.0.0.0 and port 8000.
+
+imports:
+the shared directory is mounted at /app/shared inside the docker container.
+import the logger and exceptions using:
+    from shared.logger import logger
+    from shared import exceptions
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
