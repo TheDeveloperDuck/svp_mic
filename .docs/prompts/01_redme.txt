@@ -1,0 +1,199 @@
+We are working on a microservices project for my microservices class in college. our goal is to produce an industry grade python project. 
+
+
+
+use the .pdf files in /home/duck/Documents/college/year4/microservices/ca1/svp_mic/.docs anlong with the plan to create a readme for the github repo.
+
+
+
+our plan is as follows:
+
+building a microservice based sales visit planning platform.
+
+python + fastapi for all services.
+
+docker for running everything locally.
+
+kafka for the message queue.
+
+redis for caching.
+
+postgresql for each service database.
+
+jinja2 + a dedicated frontend service for the ui.
+
+the project needs to satisfy the following patterns:
+
+saga, transactional outbox, and cqrs.
+
+====
+
+services
+
+we are building 4 services.
+
+1. customer & user service
+
+2. planning service
+
+3. expense service
+
+4. frontend service (jinja2 templates, no domain logic)
+
+each service gets its own postgresql database.
+
+no shared databases.
+
+services talk to each other via kafka events or direct api calls where needed.
+
+====
+
+patterns
+
+saga
+
+the day planning confirmation flow is the saga.
+
+a rep confirms a plan -> customer & user service validates all customers on the plan are still active.
+
+if a customer has been deactivated, the plan stays in draft and the rep is notified.
+
+compensating action is the plan rolling back to draft state.
+
+transactional outbox
+
+lives in the planning service.
+
+when a plan is confirmed, the state change and the outbox event are written in the same db transaction.
+
+a separate process polls the outbox and publishes to kafka.
+
+this stops the dual-write problem where the db write succeeds but the kafka publish fails.
+
+cqrs
+
+applied to both the planning service and the expense service.
+
+planning service:
+
+write model handles plan state transitions (draft -> confirmed -> active).
+
+read model is an optimised projection for viewing plan history and active plan summaries.
+
+expense service:
+
+write model handles submission, approval, and rejection.
+
+read model is optimised for a manager viewing all rep expenses filtered by status or date.
+
+====
+
+messaging
+
+kafka is the message broker.
+
+topics will be added as we go.
+
+current known topics:
+
+- plan.confirmed (planning -> customer & user)
+
+- plan.rolled_back (planning -> frontend notification)
+
+- customer.deactivated (customer & user -> planning)
+
+- expense.submitted (expense -> manager view)
+
+- expense.decided (expense -> rep notification)
+
+====
+
+external services
+
+google maps api for coordinate resolution.
+
+called by the planning service when a customer has no stored coordinates.
+
+coordinates are cached back to the customer record in the customer & user service db after a successful call.
+
+future plan creations for that customer skip the external call.
+
+redis is used for caching active customer lists.
+
+this reduces repeated db reads when a rep opens the planning screen.
+
+====
+
+receipt storage:
+
+expense receipts are stored as base64 encoded images directly in the expense service postgresql db.
+
+stored alongside date, category (fuel, food, overnight stay, tolls), and amount.
+
+====
+
+frontend:
+
+a dedicated 4th service.
+
+jinja2 templates only.
+
+no logic lives here, just json rendering.
+
+all three actors (sales rep, manager, administrator) access the system through this service.
+
+====
+
+build order:
+
+step 1 - project scaffolding
+
+docker-compose, shared kafka + redis + postgres setup, folder structure.
+
+step 2 - customer & user service
+
+customer records, coordinate caching, user accounts.
+
+redis cache on the active customer list.
+
+step 3 - planning service
+
+day plan lifecycle (draft -> confirmed -> active).
+
+saga orchestration.
+
+transactional outbox.
+
+google maps integration.
+
+cqrs read model.
+
+step 4 - expense service
+
+receipt upload and storage.
+
+approval workflow.
+
+cqrs read and write models.
+
+step 5 - frontend service
+
+jinja2 templates.
+
+wired to the other services via json.
+
+step 6 - kafka wiring
+
+connect all events across services.
+
+test full saga flow end to end.
+
+====
+
+reference code is in .ref_code/ at the project root.
+
+contains working code from experiments in ifm, completely owned by me.
+
+the design documents are in .docs/ and contain the full system architecture, workflows, and failure scenarios from software design ca.
+
+these are the source of truth for business rules and domain logic.

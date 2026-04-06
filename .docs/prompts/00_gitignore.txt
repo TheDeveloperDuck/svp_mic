@@ -1,0 +1,5 @@
+create a generic .gitignore at the project root.
+
+cover the usual stuff, pycache, venv/, etc.
+
+include log files *.log and environment variable files *.env.
