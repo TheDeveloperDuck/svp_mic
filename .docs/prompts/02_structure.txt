@@ -1,0 +1,40 @@
+create the basic directory structure and empty placeholder files.
+no code, just the skeleton.
+
+directories:
+/shared - common files, logger, exceptions, etc.
+/customer_user_service - customer and user service
+/planning_service - planning service
+/expense_service - expense service
+/frontend_service - jinja2 frontend, templates only
+
+each service follows this structure:
+  main.py
+  models.py
+  schemas.py
+  database.py
+  routers/
+  consumers/
+  producers/
+
+frontend_service also gets:
+  templates/
+    base.html
+    rep/
+    manager/
+    admin/
+
+shared gets:
+  logger.py
+  exceptions.py
+
+docker:
+  each service gets a Dockerfile
+  docker-compose.yml at the project root
+
+config:
+  each service gets a .env.example
+  requirements.txt per service
+
+all .py files are empty placeholders.
+all .html files are empty placeholders.
