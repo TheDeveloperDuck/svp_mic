@@ -1,0 +1,39 @@
+create the requirements.txt and dockerfile for customer_user_service.
+
+files:
+- customer_user_service/requirements.txt
+- customer_user_service/Dockerfile
+
+requirements.txt:
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+pydantic
+python-dotenv
+alembic
+aiokafka
+redis
+bcrypt
+
+dockerfile:
+use a multi-stage build with two named stages.
+
+stage 1 - builder:
+base image: python:3.12-slim
+no source code in this stage, just the built dependencies.
+
+stage 2 - runtime:
+base image: python:3.12-slim
+working directory: /app
+copy the built wheels from the builder stage
+copy the shared/ directory into /app/shared
+copy customer_user_service/ into /app/customer_user_service
+expose port 8000
+run with uvicorn, host 0.0.0.0, port 8000, entry point customer_user_service.main:app
+
+the shared directory is mounted at /app/shared so imports resolve correctly.
+do not run as root, create a non-root user in the runtime stage.
+
+use the following docker docs on multi-stage builds for help:
+[added .md copy from docker documentation]
