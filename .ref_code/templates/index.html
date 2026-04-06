@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Optimizer</title>
+    <style>
+        /* Global styles for the entire page */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* Main container with shadow effect */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Header styling */
+        h1 {
+            color: #3366cc;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 15px;
+        }
+        
+        /* Section styling (for start point, stops, etc.) */
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+        
+        /* Section title styling */
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #3366cc;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        /* Location input container styling */
+        .location-input {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Container for the stops (indented) */
+        .stops-container {
+            margin-left: 20px;
+        }
+        
+        /* Label styling */
+        label {
+            width: 100px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        /* Text input styling */
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        /* Focus effect for text inputs */
+        input[type="text"]:focus {
+            border-color: #3366cc;
+            outline: none;
+            box-shadow: 0 0 3px rgba(51,102,204,0.3);
+        }
+        
+        /* Checkbox container styling */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        /* Checkbox spacing */
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        /* Destination container (initially hidden) */
+        .destination-container {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+        
+        /* Button group container */
+        .button-group {
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        /* Shared button styling */
+        button, input[type="submit"] {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        
+        /* Regular button styling */
+        button {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        /* Regular button hover effect */
+        button:hover {
+            background-color: #e1e1e1;
+        }
+        
+        /* Submit button styling */
+        input[type="submit"] {
+            background-color: #3366cc;
+            color: white;
+            min-width: 150px;
+        }
+        
+        /* Submit button hover effect */
+        input[type="submit"]:hover {
+            background-color: #2855b2;
+        }
+        
+        /* Error message styling */
+        .error {
+            color: #D50000;
+            background-color: #FFEBEE;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            border-left: 4px solid #D50000;
+        }
+        
+        /* Info text styling for helper messages */
+        .info-text {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        /* Remove button styling */
+        .remove-btn {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* Remove button hover effect */
+        .remove-btn:hover {
+            background-color: #ffcdd2;
+        }
+        
+        /* Styling for input with button combinations */
+        .input-with-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        /* Make input expand to fill space */
+        .input-with-button input {
+            flex: 1;
+        }
+        
+        /* Location button styling */
+        .location-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        /* Location button hover effect */
+        .location-btn:hover {
+            background-color: #3e8e41;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Route Optimizer</h1>
+        
+        <!-- Display error message if one exists -->
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <form method="post">
+            <!-- Starting point section -->
+            <div class="section">
+                <div class="section-title">Starting Point</div>
+                <div class="location-input">
+                    <div class="input-with-button">
+                        <input type="text" id="startingPoint" name="location_1" placeholder="Enter starting address" required>
+                        <button type="button" class="location-btn" onclick="useCurrentLocation('start')">📍 Use My Location</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stops section -->
+            <div class="section">
+                <div class="section-title">Stops to Visit</div>
+                <div id="stops-container" class="stops-container">
+                    <!-- Initial stop -->
+                    <div class="location-input stop-input">
+                        <input type="text" name="location_2" placeholder="Enter address to visit" required>
+                        <button type="button" class="remove-btn" onclick="removeStop(this)" disabled>Remove</button>
+                    </div>
+                </div>
+                <button type="button" onclick="addStop()">+ Add Another Stop</button>
+            </div>
+            
+            <!-- Checkbox for specifying final destination -->
+            <div class="checkbox-container">
+                <input type="checkbox" id="useFixedDestination" name="useFixedDestination" onchange="toggleDestination()">
+                <label for="useFixedDestination">Specify a fixed final destination</label>
+            </div>
+            
+            <!-- Final destination section (initially hidden) -->
+            <div id="destination-container" class="destination-container">
+                <div class="section-title">Final Destination</div>
+                <div class="location-input">
+                    <div class="input-with-button">
+                        <input type="text" id="finalDestination" name="fixed_destination" placeholder="Enter final destination address">
+                        <button type="button" class="location-btn" onclick="useCurrentLocation('destination')">📍 Use My Location</button>
+                    </div>
+                </div>
+                <p class="info-text">The route will end at this location, regardless of optimization</p>
+            </div>
+            
+            <!-- Submit button -->
+            <div class="button-group">
+                <input type="submit" value="Optimize Route">
+            </div>
+            
+            <p class="info-text">The optimizer will calculate the most efficient route to visit all locations</p>
+        </form>
+    </div>
+
+    <script>
+        // Track the number of stops (we start with one stop by default)
+        let stopCount = 1;
+        
+        /**
+         * Add a new stop input field to the form
+         */
+        function addStop() {
+            stopCount++;
+            const container = document.getElementById('stops-container');
+            const div = document.createElement('div');
+            div.className = 'location-input stop-input';
+            
+            // Create text input for address
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = `location_${stopCount + 1}`; // +1 because location_1 is the starting point
+            input.placeholder = 'Enter address to visit';
+            input.required = true;
+            
+            // Create remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = 'Remove';
+            removeBtn.onclick = function() { removeStop(this); };
+            
+            // Add elements to the DOM
+            div.appendChild(input);
+            div.appendChild(removeBtn);
+            container.appendChild(div);
+            
+            // Enable all remove buttons when we have more than one stop
+            enableRemoveButtons();
+        }
+        
+        /**
+         * Remove a stop from the form
+         * @param {HTMLElement} button - The button element that was clicked
+         */
+        function removeStop(button) {
+            const stopInput = button.parentNode;
+            stopInput.parentNode.removeChild(stopInput);
+            stopCount--;
+            
+            // If only one stop remains, disable its remove button
+            if (stopCount === 1) {
+                disableRemoveButtons();
+            }
+            
+            // Renumber the inputs to maintain sequential naming
+            renumberInputs();
+        }
+        
+        /**
+         * Renumber the location input fields to ensure sequential naming
+         * This is important for the backend to process the form correctly
+         */
+        function renumberInputs() {
+            const inputs = document.querySelectorAll('#stops-container input');
+            inputs.forEach((input, index) => {
+                input.name = `location_${index + 2}`; // +2 because location_1 is the starting point
+            });
+        }
+        
+        /**
+         * Enable all remove buttons
+         * Called when there are multiple stops so any of them can be removed
+         */
+        function enableRemoveButtons() {
+            const buttons = document.querySelectorAll('.remove-btn');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+        
+        /**
+         * Disable all remove buttons
+         * Called when there's only one stop left (can't remove the last stop)
+         */
+        function disableRemoveButtons() {
+            const buttons = document.querySelectorAll('.remove-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+        
+        /**
+         * Toggle the visibility of the final destination input field
+         * Based on whether the checkbox is checked
+         */
+        function toggleDestination() {
+            const checkbox = document.getElementById('useFixedDestination');
+            const container = document.getElementById('destination-container');
+            const destinationInput = document.getElementById('finalDestination');
+            
+            if (checkbox.checked) {
+                container.style.display = 'block';
+                destinationInput.required = true;
+            } else {
+                container.style.display = 'none';
+                destinationInput.required = false;
+                destinationInput.value = '';
+            }
+        }
+        
+        /**
+         * Get the user's current location and fill in the corresponding input field
+         * @param {string} target - Which input to fill ('start' or 'destination')
+         */
+        function useCurrentLocation(target) {
+            // Check if geolocation is supported by the browser
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+            
+            // Determine which input field to update
+            const targetInput = target === 'start' ? 
+                document.getElementById('startingPoint') : 
+                document.getElementById('finalDestination');
+            
+            if (!targetInput) return;
+            
+            // Show loading indicator in the input field
+            targetInput.value = 'Getting your location...';
+            targetInput.disabled = true;
+            
+            // Use the browser's geolocation API to get current position
+            navigator.geolocation.getCurrentPosition(
+                // Success callback
+                function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    
+                    // Perform reverse geocoding using Mapbox API to get a human-readable address
+                    const mapboxToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; // Replace with your actual Mapbox access token
+                    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${mapboxToken}`;
+                    
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.features && data.features.length > 0) {
+                                // Use the full place name from Mapbox
+                                const placeName = data.features[0].place_name;
+                                targetInput.value = placeName;
+                            } else {
+                                // Fallback to coordinates if no address found
+                                targetInput.value = `${latitude}, ${longitude}`;
+                            }
+                            targetInput.disabled = false;
+                        })
+                        .catch(error => {
+                            console.error('Error during reverse geocoding:', error);
+                            // Fallback to coordinates if reverse geocoding fails
+                            targetInput.value = `${latitude}, ${longitude}`;
+                            targetInput.disabled = false;
+                        });
+                },
+                // Error callback
+                function(error) {
+                    targetInput.disabled = false;
+                    let errorMessage = 'Unable to retrieve your location';
+                    
+                    // Provide more specific error messages based on the error code
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location permission denied';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location information unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out';
+                            break;
+                    }
+                    
+                    alert(errorMessage);
+                    targetInput.value = '';
+                },
+                // Options for geolocation request
+                {
+                    enableHighAccuracy: true, // Get the most accurate position available
+                    timeout: 10000,          // Time to wait for a position (10 seconds)
+                    maximumAge: 0            // Do not use a cached position
+                }
+            );
+        }
+    </script>
+</body>
+</html>
