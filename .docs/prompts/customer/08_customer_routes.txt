@@ -1,0 +1,41 @@
+create the router files for customer_user_service.
+
+files:
+- customer_user_service/routers/customers.py
+- customer_user_service/routers/users.py
+- customer_user_service/routers/__init__.py
+
+__init__.py:
+empty package marker.
+
+customers.py:
+crud endpoints for customer records.
+
+- GET /customers - return all active customers, pulls from redis cache first,
+  falls back to db if cache is empty, repopulates cache on miss.
+- GET /customers/{customer_id} - return a single customer by id.
+- POST /customers - create a new customer, invalidate the active customer cache.
+- PATCH /customers/{customer_id} - update customer details, invalidate cache.
+- PATCH /customers/{customer_id}/deactivate - soft delete, sets is_active to false,
+  invalidate cache, fire customer.deactivated event via the producer.
+- PATCH /customers/{customer_id}/flag - set is_priority flag, manager only.
+- PATCH /customers/{customer_id}/assign - assign a sales rep to a customer.
+
+users.py:
+crud endpoints for user accounts.
+
+- GET /users - return all users.
+- GET /users/{user_id} - return a single user by id.
+- POST /users - create a new user, hash the password using bcrypt before storing.
+- PATCH /users/{user_id} - update user details.
+- DELETE /users/{user_id} - hard delete, administrator only.
+
+both files:
+use the schemas from customer_user_service/schemas.py for request and response models.
+import and use the shared logger from shared/logger.py.
+import exceptions from shared/exceptions.py.
+use the get_db dependency from customer_user_service/database.py.
+register both routers in customer_user_service/main.py when done.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

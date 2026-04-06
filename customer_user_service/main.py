@@ -12,6 +12,8 @@ from fastapi.responses import JSONResponse
 from shared import exceptions  # noqa: F401  (imported for re-use across the service)
 from shared.logger import logger
 
+from customer_user_service.routers import customers, users
+
 
 app = FastAPI(title="Customer User Service")
 
@@ -32,12 +34,11 @@ async def health_check() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Routers — register here once implemented
+# Routers
 # ---------------------------------------------------------------------------
 
-# TODO: import and include routers, e.g.:
-#   from customer_user_service.routers import customers
-#   app.include_router(customers.router)
+app.include_router(customers.router)
+app.include_router(users.router)
 
 
 # ---------------------------------------------------------------------------
