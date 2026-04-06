@@ -1,0 +1,54 @@
+create the database files for the customer_user_service.
+
+files:
+- customer_user_service/database.py
+- customer_user_service/models.py
+- customer_user_service/schemas.py
+
+database.py:
+async sqlalchemy engine and session factory.
+read the database url from the .env file.
+expose a get_db dependency for fastapi routes.
+
+models.py:
+four tables as follows.
+
+user:
+- id (uuid, primary key)
+- name (string)
+- email (string, unique)
+- hashed_password (string)
+- role (enum: sales_rep, manager, administrator)
+- is_active (bool, default true)
+- created_at (datetime)
+
+customer:
+- id (uuid, primary key)
+- name (string)
+- address (string)
+- lat (float, nullable)
+- lng (float, nullable)
+- is_active (bool, default true)
+- is_priority (bool, default false)
+- assigned_rep_id (foreign key -> user.id, nullable)
+- created_at (datetime)
+
+manager_rep (junction table, manager to sales rep is many to many):
+- manager_id (foreign key -> user.id)
+- rep_id (foreign key -> user.id)
+
+customer_priority_flag:
+- id (uuid, primary key)
+- customer_id (foreign key -> customer.id)
+- flagged_by (foreign key -> user.id, must be a manager)
+- flagged_at (datetime)
+
+schemas.py:
+pydantic models for request and response.
+one create schema and one response schema per table.
+response schemas use orm_mode.
+
+all files:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
+import the shared logger from shared/logger.py.
