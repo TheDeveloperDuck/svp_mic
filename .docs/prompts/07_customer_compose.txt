@@ -1,0 +1,31 @@
+update the docker-compose.yml and .env.example at the project root.
+only bring up what is needed for customer_user_service to run for now.
+
+files:
+- docker-compose.yml
+- .env.example
+
+docker-compose.yml:
+two services only for now: customer_user_service and its postgresql database.
+
+customer_user_service:
+- build context: ./customer_user_service
+- map external port 8001 to internal port 8000
+- depends on the postgres service being healthy
+- reads from .env at the project root
+- mounts shared/ into the container at /app/shared
+
+postgres (customer_user_db):
+- image: postgres:16
+- port 5432 internally, no need to expose externally
+- database name, user, and password read from .env
+- uses a named volume for persistence
+- healthcheck using pg_isready
+
+.env.example:
+document all required variables:
+- customer_user_service database url (asyncpg)
+- postgres db name, user, password
+- leave kafka and redis placeholders commented out for later
+
+no real credentials, just example values.

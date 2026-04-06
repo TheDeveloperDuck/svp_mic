@@ -1,0 +1,38 @@
+services:
+
+  # ---------------------------------------------------------------------------
+  # Customer & User Service
+  # ---------------------------------------------------------------------------
+  customer_user_service:
+    build:
+      context: .
+      dockerfile: customer_user_service/Dockerfile
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./shared:/app/shared:ro
+    depends_on:
+      customer_user_db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Customer & User Service — PostgreSQL
+  # ---------------------------------------------------------------------------
+  customer_user_db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${CUSTOMER_USER_DB_NAME}
+      POSTGRES_USER: ${CUSTOMER_USER_DB_USER}
+      POSTGRES_PASSWORD: ${CUSTOMER_USER_DB_PASSWORD}
+    volumes:
+      - customer_user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CUSTOMER_USER_DB_USER} -d ${CUSTOMER_USER_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  customer_user_db_data:
