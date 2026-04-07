@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from planning_service.database import get_db
-from planning_service.models import CallStatus, VisitStatus
+from planning_service.models import CallStatus, DayPlan, VisitStatus
 from planning_service.schemas import (
     CallCreate,
     CallResponse,
@@ -77,7 +77,7 @@ router = APIRouter(prefix="/plans", tags=["plans"])
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _get_plan_or_404(plan_id: UUID, db: AsyncSession) -> DayPlanResponse:
+async def _get_plan_or_404(plan_id: UUID, db: AsyncSession) -> DayPlan:
     """Return the plan with the given ID or raise HTTP 404.
 
     Arguments:

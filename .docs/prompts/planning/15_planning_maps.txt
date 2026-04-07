@@ -1,0 +1,20 @@
+create the google maps integration for the planning_service.
+
+files:
+- planning_service/services/maps_service.py
+
+maps_service.py:
+async function get_coordinates(address: str) -> dict that returns lat and lng.
+use the google maps geocoding api endpoint:
+https://maps.googleapis.com/maps/api/geocode/json
+read the api key from .env as GOOGLE_MAPS_API_KEY.
+if the api key is mock_key, skip the real api call and return hardcoded
+fake coordinates {"lat": 53.3498, "lng": -6.2603} for development.
+use httpx.AsyncClient for the real api call.
+if the api returns a non-200 response or an empty results list,
+raise ExternalMappingUnavailableError from shared/exceptions.py.
+if lat or lng are missing from the result, raise InvalidCoordinatesError.
+log success and failure using shared logger.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
