@@ -1,0 +1,75 @@
+create the database files for the planning_service.
+
+files:
+- planning_service/database.py
+- planning_service/models.py
+- planning_service/schemas.py
+
+database.py:
+async sqlalchemy engine and session factory.
+read database url from .env as PLANNING_DATABASE_URL.
+expose a get_db dependency for fastapi routes.
+log engine creation using shared logger.
+
+models.py:
+five tables.
+
+day_plan:
+- id (uuid, primary key, default uuid4)
+- rep_id (uuid, not a foreign key, no cross-service constraint)
+- status (enum: draft, confirmed, active, completed)
+- start_location (string, nullable)
+- end_location (string, nullable)
+- map_url (string, nullable)
+- date (date)
+- created_at (datetime, default utcnow)
+
+visit:
+- id (uuid, primary key, default uuid4)
+- plan_id (foreign key -> day_plan.id)
+- customer_id (uuid, no cross-service fk)
+- customer_name (string, denormalised)
+- status (enum: planned, in_progress, completed, missed, rescheduled)
+- outcome_notes (text, nullable)
+- scheduled_order (int)
+- created_at (datetime, default utcnow)
+
+call:
+- id (uuid, primary key, default uuid4)
+- plan_id (foreign key -> day_plan.id)
+- customer_id (uuid, no cross-service fk)
+- customer_name (string, denormalised)
+- status (enum: scheduled, attempted, completed)
+- outcome_notes (text, nullable)
+- duration_minutes (int, default 30)
+- created_at (datetime, default utcnow)
+
+outbox:
+- id (uuid, primary key, default uuid4)
+- event_type (string)
+- aggregate_id (uuid)
+- payload (json)
+- published (bool, default false)
+- created_at (datetime, default utcnow)
+
+plan_read_model:
+- id (uuid, primary key, default uuid4)
+- rep_id (uuid)
+- status (string)
+- date (date)
+- visit_count (int)
+- call_count (int)
+- created_at (datetime, default utcnow)
+- updated_at (datetime, default utcnow)
+
+use datetime.now(UTC) not datetime.utcnow().
+log each model registration using shared logger.
+
+schemas.py:
+pydantic request and response schemas for day_plan, visit, and call.
+one create schema and one response schema per model.
+response schemas use model_config = ConfigDict(from_attributes=True).
+log schema loading using shared logger.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
