@@ -17,7 +17,7 @@ from shared import exceptions  # noqa: F401  (imported for re-use across the ser
 from shared.logger import logger
 
 # from planning_service.consumers.plan_rolled_back import consume_plan_rolled_back
-# from planning_service.routers import plans
+from planning_service.routers import plans
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ async def health_check() -> dict:
 # Routers
 # ---------------------------------------------------------------------------
 
-# app.include_router(plans.router)
+app.include_router(plans.router)
 
 
 # ---------------------------------------------------------------------------

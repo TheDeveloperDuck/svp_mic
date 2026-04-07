@@ -1,0 +1,43 @@
+create the router and service files for the planning_service write side.
+
+files:
+- planning_service/routers/__init__.py
+- planning_service/routers/plans.py
+- planning_service/services/__init__.py
+- planning_service/services/plan_service.py
+
+__init__.py files:
+empty package markers with module docstrings.
+
+plan_service.py:
+business logic and state transition rules.
+- a plan cannot be confirmed without at least one visit or call.
+- a visit cannot be marked complete without outcome_notes.
+- plan state transitions: draft -> confirmed -> active -> completed.
+- expose async functions for each transition that enforce the rules above.
+- raise appropriate exceptions from shared/exceptions.py on rule violations.
+- log each transition using shared logger.
+
+plans.py:
+fastapi router with prefix /plans.
+endpoints:
+- POST /plans — create a new plan in draft state.
+- GET /plans/{plan_id} — get a single plan by id.
+- GET /plans — get all plans, filter by rep_id query param.
+- PATCH /plans/{plan_id}/confirm — confirm a plan.
+- PATCH /plans/{plan_id}/activate — move plan to active.
+- PATCH /plans/{plan_id}/complete — mark plan as completed.
+- POST /plans/{plan_id}/visits — add a visit to a plan.
+- POST /plans/{plan_id}/calls — add a call to a plan.
+- PATCH /plans/{plan_id}/visits/{visit_id} — update visit status and outcome notes.
+- PATCH /plans/{plan_id}/calls/{call_id} — update call status and outcome notes.
+
+use schemas from planning_service/schemas.py.
+use get_db from planning_service/database.py.
+use plan_service functions for business logic.
+import shared logger and exceptions.
+
+after creating the files, register the plans router in planning_service/main.py.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
