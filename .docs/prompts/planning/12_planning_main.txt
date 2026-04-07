@@ -1,0 +1,20 @@
+create the entry point files for the planning_service.
+
+files:
+- planning_service/__init__.py
+- planning_service/main.py
+
+__init__.py:
+empty package marker with module docstring.
+
+main.py:
+fastapi app instance.
+import and use the shared logger from shared/logger.py.
+import exceptions from shared/exceptions.py.
+health check endpoint at /health returning {"status": "ok"}.
+app runs on host 0.0.0.0 and port 8000.
+router and background task imports are placeholders for now, add them as comments.
+use the lifespan pattern for startup and shutdown.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
