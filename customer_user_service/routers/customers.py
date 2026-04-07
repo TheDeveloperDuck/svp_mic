@@ -28,6 +28,9 @@ from customer_user_service.models import (
     User,
     UserRole,
 )
+from customer_user_service.producers.customer_deactivated import (
+    publish_customer_deactivated,
+)
 from customer_user_service.schemas import CustomerCreate, CustomerResponse
 from shared.exceptions import CustomerDeactivatedError
 from shared.logger import logger
@@ -339,9 +342,7 @@ async def deactivate_customer(
     await _invalidate_cache()
     logger.info("Customer deactivated: %s.", customer_id)
 
-    # TODO: publish customer.deactivated event via
-    #        producers/customer_deactivated.py
-    # await publish_customer_deactivated(str(customer_id))
+    await publish_customer_deactivated(str(customer_id))
 
     return CustomerResponse.model_validate(customer)
 

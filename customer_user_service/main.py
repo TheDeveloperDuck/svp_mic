@@ -3,7 +3,14 @@
 Initialises the FastAPI application, registers middleware, and mounts
 all routers.  The service exposes a health-check endpoint at ``/health``
 and runs on ``0.0.0.0:8000``.
+
+On startup the ``plan.confirmed`` Kafka consumer is started as an
+``asyncio`` background task and cancelled cleanly on shutdown.
 """
+
+import asyncio
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 import uvicorn
 from fastapi import FastAPI
@@ -12,10 +19,38 @@ from fastapi.responses import JSONResponse
 from shared import exceptions  # noqa: F401  (imported for re-use across the service)
 from shared.logger import logger
 
+from customer_user_service.consumers.plan_confirmed import consume_plan_confirmed
 from customer_user_service.routers import customers, users
 
 
-app = FastAPI(title="Customer User Service")
+# ---------------------------------------------------------------------------
+# Lifespan
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage application startup and shutdown tasks.
+
+    Starts the ``plan.confirmed`` Kafka consumer as a background task on
+    startup and cancels it gracefully when the application shuts down.
+
+    Yields:
+    None -- control is handed back to FastAPI while the app is running.
+    """
+    consumer_task = asyncio.create_task(consume_plan_confirmed())
+    logger.info("plan.confirmed consumer background task created.")
+    try:
+        yield
+    finally:
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("plan.confirmed consumer background task stopped.")
+
+
+app = FastAPI(title="Customer User Service", lifespan=lifespan)
 
 
 # ---------------------------------------------------------------------------

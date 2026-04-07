@@ -1,0 +1,46 @@
+create the kafka producer and consumer files for customer_user_service.
+
+files:
+- customer_user_service/producers/__init__.py
+- customer_user_service/producers/customer_deactivated.py
+- customer_user_service/consumers/__init__.py
+- customer_user_service/consumers/plan_confirmed.py
+
+__init__.py files:
+empty package markers.
+
+customer_deactivated.py:
+aiokafka producer.
+publishes a customer.deactivated event to kafka when a customer is deactivated.
+event payload:
+- event_id (uuid)
+- event_type: "customer.deactivated"
+- customer_id (uuid)
+- timestamp (datetime)
+
+expose a single async function publish_customer_deactivated(customer_id: str) that
+other modules can call.
+read the kafka bootstrap server from the .env file.
+log success and failure using the shared logger.
+raise OutboxPublishError on failure.
+
+plan_confirmed.py:
+aiokafka consumer.
+listens on the plan.confirmed topic.
+when a plan.confirmed event is received, extract the list of customer ids from the payload.
+for each customer id, check the database to see if the customer is still active.
+if any customer is deactivated, publish a plan.rolled_back event to kafka and log the reason.
+if all customers are active, log confirmation and take no further action.
+read the kafka bootstrap server and group id from the .env file.
+run as a background task started in main.py on app startup.
+log all events using the shared logger.
+use CustomerDeactivatedError and OutboxPublishError from shared/exceptions.py where appropriate.
+
+update main.py to start the plan_confirmed consumer as a background task on startup.
+
+update .env.example with:
+- KAFKA_BOOTSTRAP_SERVERS
+- KAFKA_GROUP_ID
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
