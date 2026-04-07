@@ -6,7 +6,7 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY customer_user_service/requirements.txt .
 
 RUN pip install --upgrade pip \
     && pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt
@@ -24,6 +24,8 @@ RUN groupadd --system appgroup \
 
 WORKDIR /app
 
+ENV PYTHONPATH=/app
+
 # Install wheels built in the builder stage — no internet access required.
 COPY --from=builder /app/wheels /app/wheels
 RUN pip install --no-cache-dir --no-index --find-links /app/wheels /app/wheels/*.whl
@@ -37,4 +39,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "customer_user_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD alembic -c customer_user_service/alembic.ini upgrade head && uvicorn customer_user_service.main:app --host 0.0.0.0 --port 8000
