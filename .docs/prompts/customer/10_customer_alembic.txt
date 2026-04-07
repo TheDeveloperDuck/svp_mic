@@ -1,0 +1,21 @@
+set up alembic for customer_user_service.
+
+files:
+- customer_user_service/alembic.ini
+- customer_user_service/alembic/env.py
+- customer_user_service/alembic/versions/ (empty directory, add .gitkeep)
+
+alembic.ini:
+standard alembic config.
+set script_location to alembic.
+database url left as a placeholder, it will be overridden in env.py from the .env file.
+
+env.py:
+use async sqlalchemy engine to match the rest of the service.
+read the database url from the .env file using python-dotenv.
+import the base metadata from customer_user_service/models.py so alembic
+can detect the models and generate migrations automatically.
+configure for online mode only, offline mode is not needed.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
