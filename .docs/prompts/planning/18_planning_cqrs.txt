@@ -1,0 +1,36 @@
+create the cqrs read model for the planning_service.
+
+files:
+- planning_service/projections/__init__.py
+- planning_service/projections/plan_projection.py
+- planning_service/routers/plans_read.py
+
+__init__.py:
+empty package marker with module docstring.
+
+plan_projection.py:
+async function update_plan_projection(plan_id: UUID, db: AsyncSession) -> None.
+reads the current state of a day_plan including its visit and call counts.
+upserts a row in the plan_read_model table with:
+- rep_id, status, date from the day_plan row.
+- visit_count from count of visits on that plan.
+- call_count from count of calls on that plan.
+- updated_at set to datetime.now(UTC).
+if the plan does not exist log a warning and return.
+log using shared logger.
+
+plans_read.py:
+fastapi router with prefix /plans/read.
+read-only endpoints using plan_read_model table only.
+- GET /plans/read/rep/{rep_id} — all plan summaries for a rep.
+- GET /plans/read/active — all plans with status active across all reps.
+- GET /plans/read/history — full history, optional query params rep_id and date.
+return PlanReadModelResponse schema.
+add PlanReadModelResponse to planning_service/schemas.py if not already present.
+use get_db from planning_service/database.py.
+log using shared logger.
+
+after creating the files register the plans_read router in planning_service/main.py.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

@@ -20,7 +20,7 @@ from planning_service.consumers.customer_events import (
     run_customer_events_consumer,
 )
 from planning_service.outbox.poller import run_outbox_poller
-from planning_service.routers import plans
+from planning_service.routers import plans, plans_read
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +76,7 @@ async def health_check() -> dict:
 # ---------------------------------------------------------------------------
 
 app.include_router(plans.router)
+app.include_router(plans_read.router)
 
 
 # ---------------------------------------------------------------------------

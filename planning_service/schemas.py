@@ -9,6 +9,7 @@ Exported schemas:
 - DayPlanCreate, DayPlanResponse
 - VisitCreate, VisitResponse
 - CallCreate, CallResponse
+- PlanReadModelResponse
 """
 
 from datetime import date, datetime
@@ -165,3 +166,34 @@ class CallResponse(BaseModel):
 
 
 logger.debug("Call schemas loaded.")
+
+
+# ---------------------------------------------------------------------------
+# PlanReadModel
+# ---------------------------------------------------------------------------
+
+class PlanReadModelResponse(BaseModel):
+    """Schema for serialising a plan read-model row.
+
+    Fields:
+    id          -- UUID primary key.
+    rep_id      -- UUID of the sales rep.
+    status      -- current plan status string.
+    date        -- calendar date the plan covers.
+    visit_count -- number of visits in the plan.
+    call_count  -- number of calls in the plan.
+    updated_at  -- UTC timestamp of the last update.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    rep_id: UUID
+    status: str
+    date: date
+    visit_count: int
+    call_count: int
+    updated_at: datetime
+
+
+logger.debug("PlanReadModel schemas loaded.")
