@@ -13,10 +13,12 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from shared import exceptions  # noqa: F401  (imported for re-use across the service)
+from shared import exceptions  # noqa: F401 (re-used across the service)
 from shared.logger import logger
 
-# from planning_service.consumers.plan_rolled_back import consume_plan_rolled_back
+from planning_service.consumers.customer_events import (
+    run_customer_events_consumer,
+)
 from planning_service.outbox.poller import run_outbox_poller
 from planning_service.routers import plans
 
@@ -29,22 +31,25 @@ from planning_service.routers import plans
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown tasks.
 
-    Starts the transactional outbox poller as a background task on startup
-    and cancels it cleanly on shutdown.
+    Starts the transactional outbox poller and the customer.deactivated
+    Kafka consumer as background tasks on startup and cancels both
+    cleanly on shutdown.
 
     Yields:
     None -- control is handed back to FastAPI while the app is running.
     """
     logger.info("Planning Service starting up.")
     poller_task = asyncio.create_task(run_outbox_poller())
+    consumer_task = asyncio.create_task(run_customer_events_consumer())
     try:
         yield
     finally:
-        poller_task.cancel()
-        try:
-            await poller_task
-        except asyncio.CancelledError:
-            pass
+        for task in (poller_task, consumer_task):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         logger.info("Planning Service shutting down.")
 
 
