@@ -1,0 +1,62 @@
+create the kafka producer and consumer files for the expense_service.
+
+files:
+- expense_service/producers/__init__.py
+- expense_service/producers/expense_events.py
+- expense_service/consumers/__init__.py
+- expense_service/consumers/expense_decisions.py
+
+__init__.py files:
+empty package markers with module docstrings.
+
+expense_events.py:
+aiokafka producer.
+publishes two event types to kafka.
+
+expense.submitted:
+- event_id (uuid)
+- event_type: "expense.submitted"
+- expense_id (uuid)
+- rep_id (uuid)
+- plan_id (uuid)
+- amount (string — cast from decimal for json serialisation)
+- category (string)
+- timestamp (datetime isoformat)
+
+expense.decided:
+- event_id (uuid)
+- event_type: "expense.decided"
+- expense_id (uuid)
+- rep_id (uuid)
+- decision (string: "approved" or "rejected")
+- decided_by (uuid)
+- timestamp (datetime isoformat)
+
+expose two async functions:
+- publish_expense_submitted(expense_id, rep_id, plan_id, amount, category)
+- publish_expense_decided(expense_id, rep_id, decision, decided_by)
+
+read kafka bootstrap server from .env as KAFKA_BOOTSTRAP_SERVERS.
+event_type determines the topic.
+log success and failure using shared logger.
+raise OutboxPublishError from shared/exceptions.py on failure.
+
+expense_decisions.py:
+aiokafka consumer.
+listens on the expense.decided topic.
+consumer group id read from .env as KAFKA_GROUP_ID.
+when an expense.decided event is received:
+- log the decision and the expense_id.
+- take no further db action for now, this is the notification hook for future use.
+handle asyncio.CancelledError cleanly on shutdown.
+log all events using shared logger.
+run as async function run_expense_decisions_consumer().
+
+after creating the files update expense_service/main.py to start
+run_expense_decisions_consumer as a background task in the lifespan startup block,
+after the create_all call.
+
+update .env and .env.example with any new variables if not already present.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

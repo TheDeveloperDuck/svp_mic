@@ -5,6 +5,7 @@ all routers.  The service exposes a health-check endpoint at ``/health``
 and runs on ``0.0.0.0:8000``.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -18,8 +19,10 @@ from shared.logger import logger
 from expense_service.database import engine
 from expense_service.models import Base
 
+from expense_service.consumers.expense_decisions import (
+    run_expense_decisions_consumer,
+)
 from expense_service.routers import expenses
-# TODO: from expense_service.consumers.<module> import <consumer>
 
 
 # ---------------------------------------------------------------------------
@@ -30,8 +33,8 @@ from expense_service.routers import expenses
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown tasks.
 
-    Creates all database tables on startup and cancels any background
-    tasks cleanly on shutdown.
+    Creates all database tables on startup, starts background consumer
+    tasks, and cancels them cleanly on shutdown.
 
     Yields:
     None -- control is handed back to FastAPI while the app is running.
@@ -41,17 +44,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables ready.")
-    # TODO: start background tasks, e.g.:
-    # consumer_task = asyncio.create_task(run_some_consumer())
+    consumer_task = asyncio.create_task(run_expense_decisions_consumer())
     try:
         yield
     finally:
-        # TODO: cancel background tasks, e.g.:
-        # consumer_task.cancel()
-        # try:
-        #     await consumer_task
-        # except asyncio.CancelledError:
-        #     pass
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            pass
         logger.info("Expense Service shutting down.")
 
 
