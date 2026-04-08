@@ -1,0 +1,23 @@
+create the dockerfile and requirements.txt for the planning_service.
+follow the exact same pattern as customer_user_service.
+
+files:
+- planning_service/requirements.txt
+- planning_service/Dockerfile
+
+first scan all imports across planning_service/ to determine required packages.
+
+requirements.txt:
+include all third party packages needed.
+fastapi, uvicorn[standard], sqlalchemy[asyncio], asyncpg, pydantic,
+python-dotenv, alembic, aiokafka, httpx.
+
+Dockerfile:
+multi-stage build with builder and runtime stages.
+base image python:3.12-slim.
+non-root user appuser in runtime stage.
+copy shared/ into /app/shared.
+copy planning_service/ into /app/planning_service.
+set ENV PYTHONPATH=/app.
+CMD runs alembic -c planning_service/alembic.ini upgrade head
+then uvicorn planning_service.main:app --host 0.0.0.0 --port 8000.
