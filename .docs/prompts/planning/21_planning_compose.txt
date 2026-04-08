@@ -1,0 +1,29 @@
+update docker-compose.yml to add the planning_service and its database.
+follow the exact same pattern as customer_user_service in the existing file.
+
+add planning_db service:
+- image: postgres:16
+- container_name: planning_db
+- env vars: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD read from .env
+- internal port 5432 only, do not expose to host
+- named volume: planning_db_data
+- healthcheck using pg_isready same as customer_user_db
+
+add planning_service:
+- build context: .
+- dockerfile: planning_service/Dockerfile
+- container_name: planning_service
+- port mapping: 8002:8000
+- depends_on: planning_db, kafka, redis all with condition service_healthy
+- env_file: .env
+- restart: unless-stopped
+
+add planning_db_data to the volumes section at the bottom.
+
+also add the following to .env and .env.example:
+PLANNING_DB_NAME=planning_db
+PLANNING_DB_USER=planning_user
+PLANNING_DB_PASSWORD=planning_password
+PLANNING_DATABASE_URL=postgresql+asyncpg://planning_user:planning_password@planning_db:5432/planning_db
+
+do not change anything else in docker-compose.yml.
