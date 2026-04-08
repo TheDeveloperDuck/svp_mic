@@ -18,7 +18,7 @@ from shared.logger import logger
 from expense_service.database import engine
 from expense_service.models import Base
 
-# TODO: from expense_service.routers import expenses
+from expense_service.routers import expenses
 # TODO: from expense_service.consumers.<module> import <consumer>
 
 
@@ -77,7 +77,7 @@ async def health_check() -> dict:
 # Routers
 # ---------------------------------------------------------------------------
 
-# TODO: app.include_router(expenses.router)
+app.include_router(expenses.router)
 
 
 # ---------------------------------------------------------------------------

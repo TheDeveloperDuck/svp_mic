@@ -1,0 +1,41 @@
+create the router and service files for the expense_service write side.
+
+files:
+- expense_service/routers/__init__.py
+- expense_service/routers/expenses.py
+- expense_service/services/__init__.py
+- expense_service/services/expense_service.py
+
+__init__.py files:
+empty package markers with module docstrings.
+
+expense_service.py:
+business logic and state transition rules.
+- only a manager can move a submission to approved or rejected.
+  enforce this by checking a manager_id is provided on the decision call.
+  raise ExpenseApprovalError from shared/exceptions.py if not.
+- a rejected submission can be amended and resubmitted, returning it to submitted.
+- status transitions: submitted -> pending_approval -> approved / rejected -> submitted.
+- expose async functions for each transition that enforce the rules above.
+- log each transition using shared logger.
+
+expenses.py:
+fastapi router with prefix /expenses.
+endpoints:
+- POST /expenses — create a new expense submission in submitted state.
+- GET /expenses/{expense_id} — get a single submission by id.
+- GET /expenses — get all submissions, filter by rep_id or status query params.
+- PATCH /expenses/{expense_id}/submit — move to pending_approval.
+- PATCH /expenses/{expense_id}/approve — approve a submission, manager_id required in request body.
+- PATCH /expenses/{expense_id}/reject — reject a submission, manager_id required in request body.
+- PATCH /expenses/{expense_id}/resubmit — amend and resubmit a rejected submission.
+
+use schemas from expense_service/schemas.py.
+use get_db from expense_service/database.py.
+use expense_service functions for business logic.
+import shared logger and exceptions.
+
+after creating the files, register the expenses router in expense_service/main.py.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
