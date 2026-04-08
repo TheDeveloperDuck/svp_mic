@@ -17,6 +17,7 @@ from shared import exceptions  # noqa: F401  (imported for re-use across the ser
 from shared.logger import logger
 
 # from planning_service.consumers.plan_rolled_back import consume_plan_rolled_back
+from planning_service.outbox.poller import run_outbox_poller
 from planning_service.routers import plans
 
 
@@ -28,16 +29,22 @@ from planning_service.routers import plans
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown tasks.
 
-    Placeholder for future background tasks (e.g. Kafka consumers).
-    Extend this function when consumers are wired up.
+    Starts the transactional outbox poller as a background task on startup
+    and cancels it cleanly on shutdown.
 
     Yields:
     None -- control is handed back to FastAPI while the app is running.
     """
     logger.info("Planning Service starting up.")
+    poller_task = asyncio.create_task(run_outbox_poller())
     try:
         yield
     finally:
+        poller_task.cancel()
+        try:
+            await poller_task
+        except asyncio.CancelledError:
+            pass
         logger.info("Planning Service shutting down.")
 
 

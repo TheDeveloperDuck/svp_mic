@@ -1,0 +1,36 @@
+create the transactional outbox for the planning_service.
+
+files:
+- planning_service/outbox/__init__.py
+- planning_service/outbox/poller.py
+- planning_service/producers/__init__.py
+- planning_service/producers/plan_events.py
+
+__init__.py files:
+empty package markers with module docstrings.
+
+plan_events.py:
+aiokafka async producer.
+publish function publish_event(event_type: str, payload: dict) -> None.
+read kafka bootstrap server from .env as KAFKA_BOOTSTRAP_SERVERS.
+topics: plan.confirmed and plan.rolled_back.
+event_type determines the topic.
+log success and failure using shared logger.
+raise OutboxPublishError from shared/exceptions.py on failure.
+
+poller.py:
+async function run_outbox_poller() that runs as a background task.
+every 5 seconds query the outbox table for rows where published is false.
+for each unpublished row call publish_event from plan_events.py.
+on successful publish mark the row published = true and commit.
+if publish fails log the error and leave the row unpublished for retry.
+run indefinitely until cancelled.
+handle asyncio.CancelledError cleanly on shutdown.
+use get_db from planning_service/database.py for db access.
+log using shared logger.
+
+after creating the files update planning_service/main.py to start
+run_outbox_poller as a background task in the lifespan startup block.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
