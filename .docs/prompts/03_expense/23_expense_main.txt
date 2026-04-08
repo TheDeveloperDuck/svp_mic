@@ -1,0 +1,26 @@
+create the entry point files for the expense_service.
+
+files:
+- expense_service/__init__.py
+- expense_service/main.py
+
+__init__.py:
+empty package marker with module docstring.
+
+main.py:
+fastapi app instance.
+import and use the shared logger from shared/logger.py.
+import exceptions from shared/exceptions.py.
+health check endpoint at /health returning {"status": "ok"}.
+app runs on host 0.0.0.0 and port 8000.
+router and background task imports are placeholders for now, add them as comments.
+use the lifespan pattern for startup and shutdown.
+in the lifespan startup block, before any other tasks, create all database tables:
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+import engine from expense_service/database.py.
+import Base from expense_service/models.py.
+log before and after the create_all call using the shared logger.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
