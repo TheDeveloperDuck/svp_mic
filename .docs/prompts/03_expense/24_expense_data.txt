@@ -1,0 +1,52 @@
+create the database files for the expense_service.
+
+files:
+- expense_service/database.py
+- expense_service/models.py
+- expense_service/schemas.py
+
+database.py:
+async sqlalchemy engine and session factory.
+read database url from .env as EXPENSE_DATABASE_URL.
+expose a get_db dependency for fastapi routes.
+log engine creation using shared logger.
+
+models.py:
+three tables.
+
+expense_submission:
+- id (uuid, primary key, default uuid4)
+- rep_id (uuid, no cross-service fk)
+- plan_id (uuid, no cross-service fk)
+- category (enum: fuel, food, overnight_stay, tolls)
+- amount (numeric, precision 10 scale 2)
+- description (text, nullable)
+- receipt_image (text, nullable — base64 encoded image stored directly)
+- status (enum: submitted, pending_approval, approved, rejected)
+- submitted_at (datetime, default utcnow)
+- decided_at (datetime, nullable)
+- decided_by (uuid, nullable — manager user id, no cross-service fk)
+
+expense_read_model:
+- id (uuid, primary key, default uuid4)
+- rep_id (uuid)
+- plan_id (uuid)
+- category (string)
+- amount (numeric, precision 10 scale 2)
+- status (string)
+- submitted_at (datetime)
+- decided_at (datetime, nullable)
+- updated_at (datetime, default utcnow)
+
+use datetime.now(UTC) not datetime.utcnow().
+log each model registration using shared logger.
+
+schemas.py:
+pydantic request and response schemas for expense_submission.
+one create schema and one response schema.
+response schemas use model_config = ConfigDict(from_attributes=True).
+add an ExpenseReadModelResponse schema for the read model.
+log schema loading using shared logger.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
