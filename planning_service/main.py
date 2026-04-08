@@ -19,6 +19,8 @@ from shared.logger import logger
 from planning_service.consumers.customer_events import (
     run_customer_events_consumer,
 )
+from planning_service.database import engine
+from planning_service.models import Base
 from planning_service.outbox.poller import run_outbox_poller
 from planning_service.routers import plans, plans_read
 
@@ -39,6 +41,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     None -- control is handed back to FastAPI while the app is running.
     """
     logger.info("Planning Service starting up.")
+    logger.info("Creating database tables from SQLAlchemy models.")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables ready.")
     poller_task = asyncio.create_task(run_outbox_poller())
     consumer_task = asyncio.create_task(run_customer_events_consumer())
     try:

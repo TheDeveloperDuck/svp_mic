@@ -20,6 +20,8 @@ from shared import exceptions  # noqa: F401  (imported for re-use across the ser
 from shared.logger import logger
 
 from customer_user_service.consumers.plan_confirmed import consume_plan_confirmed
+from customer_user_service.database import engine
+from customer_user_service.models import Base
 from customer_user_service.routers import customers, users
 
 
@@ -37,6 +39,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
     None -- control is handed back to FastAPI while the app is running.
     """
+    logger.info("Creating database tables from SQLAlchemy models.")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables ready.")
     consumer_task = asyncio.create_task(consume_plan_confirmed())
     logger.info("plan.confirmed consumer background task created.")
     try:

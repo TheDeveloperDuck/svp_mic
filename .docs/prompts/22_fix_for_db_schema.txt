@@ -1,0 +1,30 @@
+add create_all to the lifespan startup block in both main.py files.
+
+files:
+- customer_user_service/main.py
+- planning_service/main.py
+
+both files:
+inside the existing lifespan startup block, before any other startup tasks,
+add the following to create all tables from the sqlalchemy model definitions
+if they do not already exist:
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+customer_user_service/main.py:
+import engine from customer_user_service/database.py.
+import Base from customer_user_service/models.py.
+
+planning_service/main.py:
+import engine from planning_service/database.py.
+import Base from planning_service/models.py.
+
+both files:
+log a message using the shared logger before and after the create_all call
+so it is visible in the container logs that the step ran.
+do not change anything else in either file.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
