@@ -1,0 +1,21 @@
+set up alembic for the planning_service.
+follow the exact same pattern as customer_user_service.
+
+files:
+- planning_service/alembic.ini
+- planning_service/alembic/env.py
+- planning_service/alembic/versions/.gitkeep
+
+alembic.ini:
+script_location = planning_service/alembic
+placeholder sqlalchemy.url = driver://user:pass@localhost/dbname
+
+env.py:
+async sqlalchemy engine.
+read database url from .env as PLANNING_DATABASE_URL.
+import Base from planning_service.models.
+run migrations in online mode only.
+use run_async_migrations pattern.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
