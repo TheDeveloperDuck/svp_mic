@@ -1,0 +1,23 @@
+create the dockerfile and requirements.txt for the expense_service.
+follow the exact same pattern as planning_service.
+
+files:
+- expense_service/requirements.txt
+- expense_service/Dockerfile
+
+first scan all imports across expense_service/ to determine required packages.
+
+requirements.txt:
+include all third party packages needed.
+fastapi, uvicorn[standard], sqlalchemy[asyncio], asyncpg, pydantic,
+python-dotenv, alembic, aiokafka.
+
+Dockerfile:
+multi-stage build with builder and runtime stages.
+base image python:3.12-slim.
+non-root user appuser in runtime stage.
+copy shared/ into /app/shared.
+copy expense_service/ into /app/expense_service.
+set ENV PYTHONPATH=/app.
+CMD runs alembic -c expense_service/alembic.ini upgrade head
+then uvicorn expense_service.main:app --host 0.0.0.0 --port 8000.
