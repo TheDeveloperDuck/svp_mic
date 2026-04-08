@@ -1,0 +1,34 @@
+create the cqrs read model for the expense_service.
+
+files:
+- expense_service/projections/__init__.py
+- expense_service/projections/expense_projection.py
+- expense_service/routers/expenses_read.py
+
+__init__.py:
+empty package marker with module docstring.
+
+expense_projection.py:
+async function update_expense_projection(expense_id: UUID, db: AsyncSession) -> None.
+reads the current state of an expense_submission by expense_id.
+upserts a row in the expense_read_model table with:
+- rep_id, plan_id, category, amount, status, submitted_at from the expense_submission row.
+- decided_at from the expense_submission row.
+- updated_at set to datetime.now(UTC).
+if the expense does not exist log a warning and return.
+log using shared logger.
+
+expenses_read.py:
+fastapi router with prefix /expenses/read.
+read-only endpoints using expense_read_model table only.
+- GET /expenses/read/rep/{rep_id} — all expense summaries for a rep.
+- GET /expenses/read/status/{status} — all expenses filtered by status string.
+- GET /expenses/read/history — full history, optional query params rep_id and status.
+return ExpenseReadModelResponse schema.
+use get_db from expense_service/database.py.
+log using shared logger.
+
+after creating the files register the expenses_read router in expense_service/main.py.
+
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

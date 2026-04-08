@@ -22,7 +22,7 @@ from expense_service.models import Base
 from expense_service.consumers.expense_decisions import (
     run_expense_decisions_consumer,
 )
-from expense_service.routers import expenses
+from expense_service.routers import expenses, expenses_read
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +79,7 @@ async def health_check() -> dict:
 # ---------------------------------------------------------------------------
 
 app.include_router(expenses.router)
+app.include_router(expenses_read.router)
 
 
 # ---------------------------------------------------------------------------
