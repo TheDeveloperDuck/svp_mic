@@ -1,0 +1,37 @@
+add an nginx reverse proxy gateway to the project.
+
+files:
+- nginx/nginx.conf
+- update docker-compose.yml to add the nginx service
+
+nginx/nginx.conf:
+nginx listens on port 80.
+route traffic by path prefix to the appropriate upstream service.
+all upstream services are addressed by their docker-compose service name on port 8000.
+
+routing rules:
+- /api/customers  → customer_user_service:8000
+- /api/users      → customer_user_service:8000
+- /api/plans      → planning_service:8000
+- /api/expenses   → expense_service:8000
+- /               → frontend_service:8000
+
+strip the /api prefix before proxying to the upstream service.
+set proxy headers: Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto.
+configure proxy_read_timeout 60s and proxy_connect_timeout 60s.
+
+docker-compose.yml:
+add an nginx service:
+- image: nginx:1.25-alpine
+- container_name: nginx
+- port mapping: 80:80 exposed to host
+- mounts nginx/nginx.conf into /etc/nginx/nginx.conf read-only
+- depends_on all four application services
+- restart: unless-stopped
+
+remove the external port mappings from customer_user_service, planning_service,
+and expense_service so they are no longer directly reachable from the host.
+all external traffic must go through nginx on port 80.
+frontend_service port mapping stays as it will be added later.
+
+do not change any application code.
