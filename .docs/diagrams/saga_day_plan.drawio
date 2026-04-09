@@ -1,0 +1,181 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="DxJqbRExzXwTpkdMA_j1">
+    <mxGraphModel dx="1273" dy="821" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="h_rep" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" value="Sales Rep" vertex="1">
+          <mxGeometry height="50" width="110" x="20" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h_planning" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" value="Planning Service" vertex="1">
+          <mxGeometry height="50" width="110" x="190" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h_outbox" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" value="Outbox Table" vertex="1">
+          <mxGeometry height="50" width="110" x="360" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h_poller" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" value="Outbox Poller" vertex="1">
+          <mxGeometry height="50" width="110" x="530" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h_kafka" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;" value="Kafka" vertex="1">
+          <mxGeometry height="50" width="110" x="700" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h_customer" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" value="Customer &amp; User Service" vertex="1">
+          <mxGeometry height="50" width="120" x="870" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l_rep" edge="1" parent="1" style="dashed=1;strokeColor=#6c8ebf;endArrow=none;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="75" y="80" as="sourcePoint" />
+            <mxPoint x="75" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l_planning" edge="1" parent="1" style="dashed=1;strokeColor=#82b366;endArrow=none;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="245" y="80" as="sourcePoint" />
+            <mxPoint x="245" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l_outbox" edge="1" parent="1" style="dashed=1;strokeColor=#b85450;endArrow=none;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="415" y="80" as="sourcePoint" />
+            <mxPoint x="415" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l_poller" edge="1" parent="1" style="dashed=1;strokeColor=#d6b656;endArrow=none;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="585" y="80" as="sourcePoint" />
+            <mxPoint x="585" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l_kafka" edge="1" parent="1" style="dashed=1;strokeColor=#9673a6;endArrow=none;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="755" y="80" as="sourcePoint" />
+            <mxPoint x="755" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l_customer" edge="1" parent="1" style="dashed=1;strokeColor=#82b366;endArrow=none;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="80" as="sourcePoint" />
+            <mxPoint x="930" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label_happy" parent="1" style="text;html=1;fontStyle=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;align=center;" value="Happy Path - All Customers Active" vertex="1">
+          <mxGeometry height="28" width="260" x="20" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="PATCH /plans/{plan_id}/confirm">
+          <mxGeometry relative="1" y="8" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="75" y="148" as="sourcePoint" />
+            <mxPoint x="245" y="148" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666;rounded=1;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Validate: At Least One Visit Or Call]" vertex="1">
+          <mxGeometry height="22" width="230" x="165" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Write plan.confirmed + Status: Draft → Confirmed">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="245" y="195" as="sourcePoint" />
+            <mxPoint x="415" y="195" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3b" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Same DB Transaction]" vertex="1">
+          <mxGeometry height="22" width="150" x="255" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;" value="200 OK - Plan Confirmed">
+          <mxGeometry relative="1" y="-12" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="245" y="242" as="sourcePoint" />
+            <mxPoint x="75" y="242" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s5" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;" value="Poll: Unpublished Rows (Every 5s)">
+          <mxGeometry relative="1" y="-8" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="585" y="278" as="sourcePoint" />
+            <mxPoint x="415" y="278" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s6" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Publish plan.confirmed">
+          <mxGeometry relative="1" y="8" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="585" y="308" as="sourcePoint" />
+            <mxPoint x="755" y="308" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s7" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Mark Row: published = true">
+          <mxGeometry relative="1" y="-8" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="585" y="338" as="sourcePoint" />
+            <mxPoint x="415" y="338" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s8" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Consume plan.confirmed">
+          <mxGeometry relative="1" x="-0.0286" y="8" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="755" y="368" as="sourcePoint" />
+            <mxPoint x="930" y="368" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s9" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Query: All Customers Active - No Action Required]" vertex="1">
+          <mxGeometry height="22" width="280" x="840" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="divider" parent="1" style="line;strokeColor=#666666;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="10" width="1050" x="20" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="label_rollback" parent="1" style="text;html=1;fontStyle=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;align=center;" value="Rollback Path — Customer Deactivated Mid-Plan" vertex="1">
+          <mxGeometry height="28" width="300" x="20" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666;rounded=1;arcSize=27;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Manager Calls: PATCH /customers/{id}/deactivate]" vertex="1">
+          <mxGeometry height="22" width="290" x="800" y="488" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Publish customer.deactivated">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="525" as="sourcePoint" />
+            <mxPoint x="755" y="525" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Consume customer.deactivated">
+          <mxGeometry relative="1" y="-18" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="755" y="558" as="sourcePoint" />
+            <mxPoint x="245" y="558" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r4" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666;rounded=1;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Query: Confirmed Or Active Plans Containing customer_id]" vertex="1">
+          <mxGeometry height="22" width="320" x="160" y="568" as="geometry" />
+        </mxCell>
+        <mxCell id="r5" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Write plan.rolled_back + Status: Confirmed → Draft">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="245" y="605" as="sourcePoint" />
+            <mxPoint x="415" y="605" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r5b" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Same DB Transaction — Compensating Action]" vertex="1">
+          <mxGeometry height="22" width="270" x="255" y="615" as="geometry" />
+        </mxCell>
+        <mxCell id="r6" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;" value="Poll: Unpublished Rows (Every 5s)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="585" y="652" as="sourcePoint" />
+            <mxPoint x="415" y="652" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r7" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Publish plan.rolled_back">
+          <mxGeometry relative="1" y="12" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="585" y="682" as="sourcePoint" />
+            <mxPoint x="755" y="682" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r8" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Mark Row: published = true">
+          <mxGeometry relative="1" y="-12" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="585" y="712" as="sourcePoint" />
+            <mxPoint x="415" y="712" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r9" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;" value="&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;[Rep Notified: Affected Stop Flagged, Plan Returned To Draft]" vertex="1">
+          <mxGeometry height="22" width="320" x="20" y="745" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

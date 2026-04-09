@@ -1,0 +1,153 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="6PC8q_YfIxVHyXWqbw6B">
+    <mxGraphModel dx="1274" dy="821" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontStyle=1;fontSize=14;align=center;" value="Transactional Outbox Pattern - Planning Service" vertex="1">
+          <mxGeometry height="30" width="600" x="300" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="label_problem" parent="1" style="text;html=1;fontStyle=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;align=center;" value="The Dual-Write Problem" vertex="1">
+          <mxGeometry height="28" width="220" x="20" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dw_api" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" value="API Call&#xa;PATCH /plans/{id}/confirm" vertex="1">
+          <mxGeometry height="60" width="200" x="20" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dw_db" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=0;fontSize=11;" value="1. Write Status To DB" vertex="1">
+          <mxGeometry height="50" width="200" x="20" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="dw_kafka" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=0;fontSize=11;" value="2. Publish To Kafka" vertex="1">
+          <mxGeometry height="50" width="200" x="20" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="dw_fail" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=2;fontSize=11;" value="If Kafka Publish Fails&#xa;DB Write Already Committed&#xa;State Is Now Inconsistent" vertex="1">
+          <mxGeometry height="70" width="200" x="20" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dw1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="180" as="sourcePoint" />
+            <mxPoint x="120" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_dw2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="280" as="sourcePoint" />
+            <mxPoint x="120" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_dw3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;" value="Can Fail">
+          <mxGeometry relative="1" y="30" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="120" y="370" as="sourcePoint" />
+            <mxPoint x="120" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="divider" parent="1" style="line;strokeColor=#666666;fillColor=none;horizontal=0;" value="" vertex="1">
+          <mxGeometry height="450" width="10" x="260" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="label_solution" parent="1" style="text;html=1;fontStyle=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;align=center;" value="The Solution — Transactional Outbox" vertex="1">
+          <mxGeometry height="28" width="280" x="280" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_box" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;opacity=40;" value="" vertex="1">
+          <mxGeometry height="160" width="520" x="280" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_label" parent="1" style="text;html=1;fontStyle=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" value="Single DB Transaction" vertex="1">
+          <mxGeometry height="25" width="180" x="280" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="sol_api" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" value="API Call&#xa;PATCH /plans/{id}/confirm" vertex="1">
+          <mxGeometry height="60" width="190" x="310" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="sol_db" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=11;" value="Write Status: Draft =&gt; Confirmed&#xa;(day_plan table)" vertex="1">
+          <mxGeometry height="40" width="190" x="310" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="sol_outbox" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=11;" value="Write plan.confirmed Event&#xa;(outbox table, published=false)" vertex="1">
+          <mxGeometry height="40" width="220" x="550" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="s3i0Vm-QNNwSadS9SvtN-1" edge="1" parent="1" source="sol_commit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="sol_outbox" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sol_commit" parent="1" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;align=center;" value="[Both Succeed Or Both Roll Back]" vertex="1">
+          <mxGeometry height="22" width="280" x="280" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sol1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="405" y="190" as="sourcePoint" />
+            <mxPoint x="405" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_sol2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="405" y="205" />
+              <mxPoint x="660" y="205" />
+            </Array>
+            <mxPoint x="405" y="190" as="sourcePoint" />
+            <mxPoint x="660" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="poller_box" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" value="Outbox Poller&#xa;Runs Every 5 Seconds" vertex="1">
+          <mxGeometry height="60" width="200" x="290" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="e_outbox_poller" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Query: published = false">
+          <mxGeometry relative="1" x="0.027" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="660" y="330" />
+              <mxPoint x="390" y="330" />
+            </Array>
+            <mxPoint x="660" y="260" as="sourcePoint" />
+            <mxPoint x="390" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kafka_box" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;" value="Kafka&#xa;Message Broker" vertex="1">
+          <mxGeometry height="60" width="180" x="600" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="e_poller_kafka" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;" value="Publish Event">
+          <mxGeometry relative="1" x="-0.0909" y="20" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="490" y="390" as="sourcePoint" />
+            <mxPoint x="600" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="success_box" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=11;" value="Mark Row: published = true&#xa;Event Delivered" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="e_kafka_success" edge="1" parent="1" source="kafka_box" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;entryX=0.75;entryY=0;entryDx=0;entryDy=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" target="success_box" value="On Success">
+          <mxGeometry relative="1" y="-45" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="690" y="420" as="sourcePoint" />
+            <mxPoint x="720" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fail_box" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=0;fontSize=11;" value="Row Stays: published = false&#xa;Retried On Next Poll Cycle" vertex="1">
+          <mxGeometry height="50" width="200" x="290" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="e_poller_fail" edge="1" parent="1" source="poller_box" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" value="On Failure">
+          <mxGeometry relative="1" y="30" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="440" y="478" />
+            </Array>
+            <mxPoint x="390" y="420" as="sourcePoint" />
+            <mxPoint x="440" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_retry" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;strokeColor=#b85450;" value="Retry Next Cycle">
+          <mxGeometry relative="1" x="0.5161" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="260" y="505" />
+              <mxPoint x="260" y="390" />
+              <mxPoint x="290" y="390" />
+            </Array>
+            <mxPoint x="290" y="505" as="sourcePoint" />
+            <mxPoint x="270" y="505" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
