@@ -1,6 +1,45 @@
 services:
 
   # ---------------------------------------------------------------------------
+  # Expense Service
+  # ---------------------------------------------------------------------------
+  expense_service:
+    build:
+      context: .
+      dockerfile: expense_service/Dockerfile
+    container_name: expense_service
+    ports:
+      - "8003:8000"
+    depends_on:
+      expense_db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Expense Service — PostgreSQL
+  # ---------------------------------------------------------------------------
+  expense_db:
+    image: postgres:16
+    container_name: expense_db
+    environment:
+      POSTGRES_DB: ${EXPENSE_DB_NAME}
+      POSTGRES_USER: ${EXPENSE_DB_USER}
+      POSTGRES_PASSWORD: ${EXPENSE_DB_PASSWORD}
+    volumes:
+      - expense_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${EXPENSE_DB_USER} -d ${EXPENSE_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
   # Planning Service
   # ---------------------------------------------------------------------------
   planning_service:
@@ -122,5 +161,6 @@ services:
       retries: 5
 
 volumes:
+  expense_db_data:
   planning_db_data:
   customer_user_db_data:

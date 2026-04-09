@@ -1,0 +1,24 @@
+update docker-compose.yml to add the expense_service and its database.
+follow the exact same pattern as planning_service in the existing file.
+
+add expense_db service:
+- image: postgres:16
+- container_name: expense_db
+- env vars: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD read from .env
+  using EXPENSE_DB_NAME, EXPENSE_DB_USER, EXPENSE_DB_PASSWORD
+- internal port 5432 only, do not expose to host
+- named volume: expense_db_data
+- healthcheck using pg_isready same as the other databases
+
+add expense_service:
+- build context: .
+- dockerfile: expense_service/Dockerfile
+- container_name: expense_service
+- port mapping: 8003:8000
+- depends_on: expense_db, kafka, redis all with condition service_healthy
+- env_file: .env
+- restart: unless-stopped
+
+add expense_db_data to the volumes section at the bottom.
+
+do not change anything else in docker-compose.yml.
