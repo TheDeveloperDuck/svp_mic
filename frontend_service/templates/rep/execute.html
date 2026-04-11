@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Execute Plan — SVP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Execute Plan</h1>
+
+<div class="card card--rep" style="max-width: 400px;">
+    <div class="form-row">
+        <label for="plan-select">Select Plan</label>
+        <select id="plan-select" name="plan_id">
+            <option value="">— choose a plan —</option>
+            <option value="1">2026-04-10 | Draft</option>
+            <option value="2">2026-04-09 | Confirmed</option>
+        </select>
+    </div>
+</div>
+
+<div class="visit-cards" id="visit-cards">
+
+    <!-- Placeholder card 1: Visit -->
+    <div class="visit-card">
+        <div class="visit-card-header">
+            <span class="visit-card-name">Acme Corp</span>
+            <span class="visit-card-type">Visit</span>
+            <span class="badge badge-pending_approval">Pending Approval</span>
+        </div>
+        <div class="visit-card-fields">
+            <div>
+                <label for="status-1">Status</label>
+                <select id="status-1" name="status">
+                    <option value="planned">Planned</option>
+                    <option value="completed">Completed</option>
+                    <option value="skipped">Skipped</option>
+                </select>
+            </div>
+            <div>
+                <label for="notes-1">Outcome Notes</label>
+                <textarea id="notes-1" name="notes" placeholder="Enter outcome notes..."></textarea>
+            </div>
+        </div>
+        <button class="btn btn-rep" type="button">Save</button>
+    </div>
+
+    <!-- Placeholder card 2: Call -->
+    <div class="visit-card">
+        <div class="visit-card-header">
+            <span class="visit-card-name">Beta Ltd</span>
+            <span class="visit-card-type">Call</span>
+            <span class="badge badge-draft">Draft</span>
+        </div>
+        <div class="visit-card-fields">
+            <div>
+                <label for="status-2">Status</label>
+                <select id="status-2" name="status">
+                    <option value="planned">Planned</option>
+                    <option value="completed">Completed</option>
+                    <option value="skipped">Skipped</option>
+                </select>
+            </div>
+            <div>
+                <label for="notes-2">Outcome Notes</label>
+                <textarea id="notes-2" name="notes" placeholder="Enter outcome notes..."></textarea>
+            </div>
+        </div>
+        <button class="btn btn-rep" type="button">Save</button>
+    </div>
+
+</div>
+{% endblock %}

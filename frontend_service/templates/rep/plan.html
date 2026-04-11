@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Plan My Day — SVP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Plan My Day</h1>
+
+<div class="two-col">
+
+    <!-- ── Left: Customer List ─────────────────────────────── -->
+    <div class="two-col-left">
+        <div class="card card--rep">
+            <div class="card-header">Customers</div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Priority</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- placeholder row -->
+                        <tr class="priority-row">
+                            <td>Acme Corp</td>
+                            <td>12 High Street, Dublin</td>
+                            <td><span class="badge badge-confirmed">Priority</span></td>
+                            <td>
+                                <button class="btn btn-rep" type="button">Add to Plan</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Beta Ltd</td>
+                            <td>7 Low Road, Cork</td>
+                            <td>—</td>
+                            <td>
+                                <button class="btn btn-rep" type="button">Add to Plan</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Loading...</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Right: Day Plan Builder ─────────────────────────── -->
+    <div class="two-col-right">
+        <div class="card card--rep">
+            <div class="card-header">
+                Day Plan
+                <span class="badge badge-draft" style="float:right; margin-top:2px;">Draft</span>
+            </div>
+
+            <form class="form" onsubmit="return false;">
+                <div class="form-row">
+                    <label for="plan-date">Date</label>
+                    <input type="date" id="plan-date" name="date">
+                </div>
+                <div class="form-row">
+                    <label for="plan-start">Start Location</label>
+                    <input type="text" id="plan-start" name="start_location" placeholder="e.g. Dublin Office">
+                </div>
+                <div class="form-row">
+                    <label for="plan-end">End Location</label>
+                    <input type="text" id="plan-end" name="end_location" placeholder="e.g. Cork Office">
+                </div>
+                <div>
+                    <button class="btn btn-rep" type="button">Create Plan</button>
+                </div>
+            </form>
+
+            <hr class="divider">
+
+            <div class="section-title">Customers in Plan</div>
+            <ul class="plan-list" id="plan-customer-list">
+                <li class="plan-list-empty">No customers added yet.</li>
+            </ul>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" type="button">Confirm Plan</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

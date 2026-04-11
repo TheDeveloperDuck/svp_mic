@@ -1,0 +1,155 @@
+create the frontend service ui templates and static styles.
+this prompt covers structure and appearance only.
+no httpx calls, no backend connections, no data fetching.
+all data sections are rendered with placeholder content for now.
+
+files:
+- frontend_service/static/style.css
+- frontend_service/templates/base.html
+- frontend_service/templates/index.html
+- frontend_service/templates/rep/plan.html
+- frontend_service/templates/rep/execute.html
+- frontend_service/templates/rep/expenses.html
+- frontend_service/templates/manager/approvals.html
+- frontend_service/templates/manager/overview.html
+- frontend_service/templates/admin/users.html
+- frontend_service/templates/admin/customers.html
+
+style.css:
+clean, minimal, professional.
+no external css frameworks, plain css only.
+css variables for the three actor colours:
+  --rep-colour: a blue tone
+  --manager-colour: a green tone
+  --admin-colour: a red tone
+shared styles for: body, nav bar, tables, forms, buttons, badges, cards, error banners.
+responsive layout using flexbox.
+table rows alternate background colour for readability.
+buttons have hover states.
+active nav link is underlined and bold.
+badge styles for status values:
+  submitted: grey
+  pending_approval: yellow
+  approved: green
+  rejected: red
+  draft: grey
+  confirmed: blue
+  active: green
+  completed: dark grey
+
+base.html:
+extends nothing, is the base for all other templates.
+links to /static/style.css.
+nav bar at the top of every page.
+site title on the left: "SVP — Sales Visit Planner".
+three groups of links in the nav bar, each group in its actor colour.
+  rep group (blue): Plan My Day, Execute Plan, Submit Expense
+  manager group (green): Approve Expenses, Team Overview
+  admin group (red): Manage Users, Manage Customers
+active page link highlighted.
+below the nav bar, a full width identity bar.
+the identity bar has three inline inputs, one per actor:
+  Rep ID, Manager ID, Admin ID.
+each input has a small "Set" button next to it.
+values are saved to localStorage and loaded on page load via a small inline script.
+a {% block content %} below the identity bar for page content.
+a {% block scripts %} at the bottom of body for page-specific scripts.
+
+index.html:
+extends base.html.
+three cards side by side, one per actor, each in their actor colour.
+each card has the actor name, a one line description of their role, and links to their pages.
+rep card: "Plan and execute your sales day."
+manager card: "Review team activity and approve expenses."
+admin card: "Manage users and customers."
+
+rep/plan.html:
+extends base.html.
+two column layout.
+left column: customer list table.
+  columns: name, address, priority flag.
+  priority flagged rows highlighted in yellow.
+  each row has an "Add to Plan" button (no function yet, placeholder only).
+  a loading placeholder row in the table body.
+right column: day plan builder.
+  date input, start location input, end location input.
+  a "Create Plan" button (placeholder).
+  a plan status badge showing "Draft" by default.
+  a list area for customers added to the plan (empty placeholder).
+  a "Confirm Plan" button (placeholder).
+
+rep/execute.html:
+extends base.html.
+a dropdown at the top to select a plan (placeholder options).
+below the dropdown, a list of visit and call cards.
+each card shows: customer name, type (visit or call), current status badge.
+each card has a status dropdown and an outcome notes textarea.
+a "Save" button per card (placeholder).
+two placeholder cards visible by default so the layout is clear.
+
+rep/expenses.html:
+extends base.html.
+two sections.
+top section: submit new expense form.
+  rep id shown as read only, pulled from localStorage.
+  plan id input.
+  category dropdown: fuel, food, overnight stay, tolls.
+  amount input.
+  description textarea.
+  receipt image file input.
+  submit button (placeholder).
+bottom section: my expenses table.
+  columns: category, amount, status badge, submitted date.
+  a placeholder row in the table body.
+
+manager/approvals.html:
+extends base.html.
+manager id shown as read only at the top, pulled from localStorage.
+filter buttons: all, pending, approved, rejected.
+active filter button highlighted in manager green.
+expense submissions table.
+  columns: rep id, category, amount, description, status badge.
+  pending rows have approve (green button) and reject (red button) action buttons.
+  non-pending rows show the status badge only.
+  a placeholder row in the table body.
+
+manager/overview.html:
+extends base.html.
+two sections.
+top section: plan history table.
+  heading: "Plan History"
+  columns: rep id, date, status badge, visit count, call count.
+  a placeholder row.
+bottom section: expense summary table.
+  heading: "Expense Summary"
+  columns: rep id, category, amount, status badge, submitted date.
+  a placeholder row.
+
+admin/users.html:
+extends base.html.
+two sections.
+top section: create user form.
+  name, email, password, role dropdown (sales rep, manager, administrator).
+  submit button (placeholder).
+  an empty success/error message area below the form.
+bottom section: user list table.
+  columns: name, email, role, active status badge.
+  a placeholder row.
+
+admin/customers.html:
+extends base.html.
+two sections.
+top section: create customer form.
+  name input, address input.
+  submit button (placeholder).
+  an empty success/error message area below the form.
+bottom section: customer list table.
+  columns: name, address, priority flag, assigned rep, active status badge.
+  each row has a deactivate button (placeholder, red, only shown for active customers).
+  a placeholder row.
+
+all templates:
+use {% block content %} and {% block scripts %} from base.html.
+no inline javascript except the localStorage identity bar script in base.html.
+no hardcoded data except the placeholder rows described above.
+clean readable html, consistent indentation.

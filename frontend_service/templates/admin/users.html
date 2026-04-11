@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users — SVP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Manage Users</h1>
+
+<!-- ── Top: Create User Form ──────────────────────────────── -->
+<div class="card card--admin">
+    <div class="card-header">Create User</div>
+
+    <form class="form" onsubmit="return false;">
+        <div class="form-row">
+            <label for="user-name">Name</label>
+            <input type="text" id="user-name" name="name" placeholder="Full name">
+        </div>
+        <div class="form-row">
+            <label for="user-email">Email</label>
+            <input type="email" id="user-email" name="email" placeholder="user@example.com">
+        </div>
+        <div class="form-row">
+            <label for="user-password">Password</label>
+            <input type="password" id="user-password" name="password" placeholder="••••••••">
+        </div>
+        <div class="form-row">
+            <label for="user-role">Role</label>
+            <select id="user-role" name="role">
+                <option value="">— select role —</option>
+                <option value="sales_rep">Sales Rep</option>
+                <option value="manager">Manager</option>
+                <option value="administrator">Administrator</option>
+            </select>
+        </div>
+        <div>
+            <button class="btn btn-admin" type="button">Create User</button>
+        </div>
+    </form>
+
+    <div class="message-area mt-3" id="user-message"></div>
+</div>
+
+<!-- ── Bottom: User List ───────────────────────────────────── -->
+<div class="card card--admin">
+    <div class="card-header">All Users</div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- placeholder row -->
+                <tr>
+                    <td>Jane Smith</td>
+                    <td>jane@example.com</td>
+                    <td>Sales Rep</td>
+                    <td><span class="badge badge-active">Active</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

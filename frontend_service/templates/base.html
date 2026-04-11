@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SVP — Sales Visit Planner{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- ── Nav Bar ─────────────────────────────────────────── -->
+    <nav class="nav">
+        <span class="nav-brand">SVP — Sales Visit Planner</span>
+
+        <div class="nav-groups">
+            <div class="nav-group nav-group--rep">
+                <span class="nav-group-label">Rep</span>
+                <a href="/rep/plan"    {% if request.url.path == '/rep/plan'    %}class="active"{% endif %}>Plan My Day</a>
+                <a href="/rep/execute" {% if request.url.path == '/rep/execute' %}class="active"{% endif %}>Execute Plan</a>
+                <a href="/rep/expenses"{% if request.url.path == '/rep/expenses'%}class="active"{% endif %}>Submit Expense</a>
+            </div>
+
+            <div class="nav-group nav-group--manager">
+                <span class="nav-group-label">Manager</span>
+                <a href="/manager/approvals" {% if request.url.path == '/manager/approvals' %}class="active"{% endif %}>Approve Expenses</a>
+                <a href="/manager/overview"  {% if request.url.path == '/manager/overview'  %}class="active"{% endif %}>Team Overview</a>
+            </div>
+
+            <div class="nav-group nav-group--admin">
+                <span class="nav-group-label">Admin</span>
+                <a href="/admin/users"     {% if request.url.path == '/admin/users'     %}class="active"{% endif %}>Manage Users</a>
+                <a href="/admin/customers" {% if request.url.path == '/admin/customers' %}class="active"{% endif %}>Manage Customers</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── Identity Bar ────────────────────────────────────── -->
+    <div class="identity-bar">
+        <div class="identity-item identity-item--rep">
+            <label for="id-rep">Rep ID</label>
+            <input type="text" id="id-rep" placeholder="e.g. 1">
+            <button class="btn-set" onclick="setIdentity('rep')">Set</button>
+        </div>
+
+        <div class="identity-item identity-item--manager">
+            <label for="id-manager">Manager ID</label>
+            <input type="text" id="id-manager" placeholder="e.g. 2">
+            <button class="btn-set" onclick="setIdentity('manager')">Set</button>
+        </div>
+
+        <div class="identity-item identity-item--admin">
+            <label for="id-admin">Admin ID</label>
+            <input type="text" id="id-admin" placeholder="e.g. 3">
+            <button class="btn-set" onclick="setIdentity('admin')">Set</button>
+        </div>
+    </div>
+
+    <!-- ── Page Content ────────────────────────────────────── -->
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- ── Identity Bar Script ─────────────────────────────── -->
+    <script>
+        (function () {
+            var keys = ['rep', 'manager', 'admin'];
+            keys.forEach(function (role) {
+                var stored = localStorage.getItem('svp_id_' + role);
+                if (stored) {
+                    var el = document.getElementById('id-' + role);
+                    if (el) el.value = stored;
+                }
+            });
+        })();
+
+        function setIdentity(role) {
+            var el = document.getElementById('id-' + role);
+            if (el) {
+                localStorage.setItem('svp_id_' + role, el.value.trim());
+            }
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

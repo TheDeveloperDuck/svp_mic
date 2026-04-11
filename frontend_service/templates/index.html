@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Home — SVP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Welcome to SVP</h1>
+
+<div class="actor-cards">
+
+    <!-- Rep Card -->
+    <div class="actor-card actor-card--rep">
+        <h2>Sales Rep</h2>
+        <p>Plan and execute your sales day.</p>
+        <div class="actor-card-links">
+            <a href="/rep/plan">Plan My Day</a>
+            <a href="/rep/execute">Execute Plan</a>
+            <a href="/rep/expenses">Submit Expense</a>
+        </div>
+    </div>
+
+    <!-- Manager Card -->
+    <div class="actor-card actor-card--manager">
+        <h2>Manager</h2>
+        <p>Review team activity and approve expenses.</p>
+        <div class="actor-card-links">
+            <a href="/manager/approvals">Approve Expenses</a>
+            <a href="/manager/overview">Team Overview</a>
+        </div>
+    </div>
+
+    <!-- Admin Card -->
+    <div class="actor-card actor-card--admin">
+        <h2>Administrator</h2>
+        <p>Manage users and customers.</p>
+        <div class="actor-card-links">
+            <a href="/admin/users">Manage Users</a>
+            <a href="/admin/customers">Manage Customers</a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Team Overview — SVP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Team Overview</h1>
+
+<!-- ── Top: Plan History ───────────────────────────────────── -->
+<div class="card card--manager">
+    <div class="card-header">Plan History</div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rep ID</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Visits</th>
+                    <th>Calls</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- placeholder row -->
+                <tr>
+                    <td>1</td>
+                    <td>2026-04-10</td>
+                    <td><span class="badge badge-confirmed">Confirmed</span></td>
+                    <td>3</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Bottom: Expense Summary ─────────────────────────────── -->
+<div class="card card--manager">
+    <div class="card-header">Expense Summary</div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rep ID</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Submitted Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- placeholder row -->
+                <tr>
+                    <td>1</td>
+                    <td>Fuel</td>
+                    <td>€45.00</td>
+                    <td><span class="badge badge-approved">Approved</span></td>
+                    <td>2026-04-10</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

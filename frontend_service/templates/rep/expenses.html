@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Expense — SVP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Submit Expense</h1>
+
+<!-- ── Top: New Expense Form ───────────────────────────────── -->
+<div class="card card--rep">
+    <div class="card-header">New Expense</div>
+
+    <form class="form" onsubmit="return false;">
+        <div class="form-row">
+            <label for="expense-rep-id">Rep ID</label>
+            <input type="text" id="expense-rep-id" name="rep_id" readonly>
+        </div>
+        <div class="form-row">
+            <label for="expense-plan-id">Plan ID</label>
+            <input type="text" id="expense-plan-id" name="plan_id" placeholder="e.g. 42">
+        </div>
+        <div class="form-row">
+            <label for="expense-category">Category</label>
+            <select id="expense-category" name="category">
+                <option value="">— select category —</option>
+                <option value="fuel">Fuel</option>
+                <option value="food">Food</option>
+                <option value="overnight_stay">Overnight Stay</option>
+                <option value="tolls">Tolls</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <label for="expense-amount">Amount (€)</label>
+            <input type="number" id="expense-amount" name="amount" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div class="form-row">
+            <label for="expense-description">Description</label>
+            <textarea id="expense-description" name="description" placeholder="Brief description of the expense..."></textarea>
+        </div>
+        <div class="form-row">
+            <label for="expense-receipt">Receipt Image</label>
+            <input type="file" id="expense-receipt" name="receipt" accept="image/*">
+        </div>
+        <div>
+            <button class="btn btn-rep" type="button">Submit Expense</button>
+        </div>
+    </form>
+</div>
+
+<!-- ── Bottom: My Expenses Table ──────────────────────────── -->
+<div class="card card--rep">
+    <div class="card-header">My Expenses</div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Submitted Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- placeholder row -->
+                <tr>
+                    <td>Fuel</td>
+                    <td>€45.00</td>
+                    <td><span class="badge badge-submitted">Submitted</span></td>
+                    <td>2026-04-10</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        var repId = localStorage.getItem('svp_id_rep') || '';
+        var el = document.getElementById('expense-rep-id');
+        if (el) el.value = repId;
+    })();
+</script>
+{% endblock %}
