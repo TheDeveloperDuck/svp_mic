@@ -1,0 +1,23 @@
+update docker-compose.yml to add the frontend_service and fix the nginx crash loop.
+
+files:
+- docker-compose.yml
+
+add frontend_service:
+- build context: .
+- dockerfile: frontend_service/Dockerfile
+- container_name: frontend_service
+- port mapping: 8080:8000 exposed to host
+- depends_on: kafka and redis with condition service_healthy
+- env_file: .env
+- restart: unless-stopped
+- no database dependency, this service has no db
+
+update the nginx service:
+- add frontend_service to depends_on with condition service_started.
+  service_started is correct here rather than service_healthy because
+  frontend_service has no healthcheck defined.
+
+do not change any other service in docker-compose.yml.
+do not change nginx.conf.
+do not change any application code.

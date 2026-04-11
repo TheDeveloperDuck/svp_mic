@@ -14,6 +14,26 @@ services:
       - customer_user_service
       - planning_service
       - expense_service
+      - frontend_service
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Frontend Service
+  # ---------------------------------------------------------------------------
+  frontend_service:
+    build:
+      context: .
+      dockerfile: frontend_service/Dockerfile
+    container_name: frontend_service
+    ports:
+      - "8080:8000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
