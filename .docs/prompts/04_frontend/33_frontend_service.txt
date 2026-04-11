@@ -1,0 +1,86 @@
+create the fastapi app, router, dockerfile, and requirements for the frontend_service.
+
+files:
+- frontend_service/__init__.py
+- frontend_service/main.py
+- frontend_service/routers/__init__.py
+- frontend_service/routers/pages.py
+- frontend_service/requirements.txt
+- frontend_service/Dockerfile
+
+__init__.py files:
+empty package markers with module docstrings.
+
+requirements.txt:
+fastapi, uvicorn[standard], jinja2, httpx, python-dotenv.
+
+Dockerfile:
+follow the exact same multi-stage build pattern as planning_service.
+base image python:3.12-slim.
+non-root user appuser in runtime stage.
+copy shared/ into /app/shared.
+copy frontend_service/ into /app/frontend_service.
+set ENV PYTHONPATH=/app.
+CMD runs uvicorn frontend_service.main:app --host 0.0.0.0 --port 8000.
+no alembic step, this service has no database.
+
+main.py:
+fastapi app instance.
+import and use the shared logger from shared/logger.py.
+mount static files from frontend_service/static at /static.
+set up jinja2 templates from frontend_service/templates.
+register the pages router.
+health check endpoint at /health returning {"status": "ok"}.
+use the lifespan pattern.
+log startup and shutdown using shared logger.
+
+pages.py:
+fastapi router that renders all eight pages using jinja2 templates.
+use httpx.AsyncClient for all backend calls.
+all backend calls go to http://nginx/api/... using the internal docker network.
+set a timeout of 10 seconds on all httpx calls.
+on any httpx error, log the error using shared logger and pass an empty list or
+empty dict to the template so the page still renders.
+do not raise http exceptions to the user, degrade gracefully.
+
+routes and their httpx calls:
+
+GET / → render templates/index.html, no backend call.
+
+GET /rep/plan → render templates/rep/plan.html.
+  call GET http://nginx/api/customers.
+  pass customers list to template.
+
+GET /rep/execute → render templates/rep/execute.html.
+  call GET http://nginx/api/plans.
+  pass plans list to template.
+
+GET /rep/expenses → render templates/rep/expenses.html.
+  read rep_id from query param (optional, defaults to empty string).
+  call GET http://nginx/api/expenses?rep_id={rep_id} if rep_id is set,
+  otherwise GET http://nginx/api/expenses.
+  pass expenses list to template.
+
+GET /manager/expenses → render templates/manager/approvals.html.
+  call GET http://nginx/api/expenses.
+  pass expenses list to template.
+
+GET /manager/overview → render templates/manager/overview.html.
+  call GET http://nginx/api/plans/read/history.
+  call GET http://nginx/api/expenses/read/history.
+  pass plans and expenses lists to template.
+
+GET /admin/users → render templates/admin/users.html.
+  call GET http://nginx/api/users.
+  pass users list to template.
+
+GET /admin/customers → render templates/admin/customers.html.
+  call GET http://nginx/api/customers.
+  pass customers list to template.
+
+all templates also receive a current_path variable set to request.url.path
+so the base template can highlight the active nav link.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
