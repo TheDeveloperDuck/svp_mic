@@ -1,0 +1,19 @@
+fix the nginx depends_on in docker-compose.yml.
+
+convert the current bare list form to the explicit map form with
+condition: service_started on all four entries.
+
+the nginx depends_on block should read exactly:
+
+  depends_on:
+    customer_user_service:
+      condition: service_started
+    planning_service:
+      condition: service_started
+    expense_service:
+      condition: service_started
+    frontend_service:
+      condition: service_started
+
+do not change anything else in docker-compose.yml.
+do not change any application code.
