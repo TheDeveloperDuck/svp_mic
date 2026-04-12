@@ -10,7 +10,7 @@ Defines four database tables:
 
 import enum
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -74,7 +74,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     # Relationships
@@ -145,7 +145,7 @@ class Customer(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     # Relationships
@@ -246,7 +246,7 @@ class CustomerPriorityFlag(Base):
     flagged_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     # Relationships

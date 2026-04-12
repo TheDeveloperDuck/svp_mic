@@ -1,0 +1,29 @@
+fix the timezone-aware datetime mismatch in customer_user_service.
+
+the error is:
+  can't subtract offset-naive and offset-aware datetimes
+  columns are TIMESTAMP WITHOUT TIME ZONE but the code passes
+  datetime.datetime(..., tzinfo=datetime.timezone.utc)
+
+files:
+- customer_user_service/data/models.py
+
+read customer_user_service/data/models.py first.
+
+for every DateTime or TIMESTAMP column that uses created_at or
+updated_at, change the default from:
+
+  datetime.now(timezone.utc)
+
+to:
+
+  datetime.utcnow()
+
+this produces a naive datetime that matches TIMESTAMP WITHOUT TIME ZONE.
+
+do not change column types.
+do not change any other files.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
