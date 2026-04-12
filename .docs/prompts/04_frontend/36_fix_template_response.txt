@@ -1,0 +1,25 @@
+fix the TemplateResponse call signature in frontend_service/routers/pages.py.
+
+the installed version of starlette uses the new TemplateResponse signature
+where request is the first positional argument:
+
+  templates.TemplateResponse(request, "template/path.html", context_dict)
+
+the current calls pass the template name first and the context dict second.
+this causes starlette to treat the string as request and the dict as name,
+which then fails with: TypeError: unhashable type: 'dict'
+
+read frontend_service/routers/pages.py first.
+
+update every templates.TemplateResponse call in that file to the new signature:
+
+  templates.TemplateResponse(request, "template/path.html", _ctx(request, {...}))
+
+the _ctx helper call stays exactly as it is — only the argument order changes.
+do not change the _ctx helper itself.
+do not change any other logic, routes, or imports.
+do not change any other files.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

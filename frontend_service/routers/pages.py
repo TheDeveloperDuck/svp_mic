@@ -90,6 +90,7 @@ async def index(request: Request) -> HTMLResponse:
     HTMLResponse -- rendered ``index.html`` template.
     """
     return templates.TemplateResponse(
+        request,
         "index.html",
         _ctx(request, {}),
     )
@@ -113,6 +114,7 @@ async def rep_plan(request: Request) -> HTMLResponse:
         )
         customers = []
     return templates.TemplateResponse(
+        request,
         "rep/plan.html",
         _ctx(request, {"customers": customers}),
     )
@@ -135,6 +137,7 @@ async def rep_execute(request: Request) -> HTMLResponse:
         )
         plans = []
     return templates.TemplateResponse(
+        request,
         "rep/execute.html",
         _ctx(request, {"plans": plans}),
     )
@@ -169,6 +172,7 @@ async def rep_expenses(
         )
         expenses = []
     return templates.TemplateResponse(
+        request,
         "rep/expenses.html",
         _ctx(request, {"expenses": expenses, "rep_id": rep_id}),
     )
@@ -192,6 +196,7 @@ async def manager_approvals(request: Request) -> HTMLResponse:
         )
         expenses = []
     return templates.TemplateResponse(
+        request,
         "manager/approvals.html",
         _ctx(request, {"expenses": expenses}),
     )
@@ -224,6 +229,7 @@ async def manager_overview(request: Request) -> HTMLResponse:
         expenses = []
 
     return templates.TemplateResponse(
+        request,
         "manager/overview.html",
         _ctx(request, {"plans": plans, "expenses": expenses}),
     )
@@ -246,6 +252,7 @@ async def admin_users(request: Request) -> HTMLResponse:
         )
         users = []
     return templates.TemplateResponse(
+        request,
         "admin/users.html",
         _ctx(request, {"users": users}),
     )
@@ -268,6 +275,7 @@ async def admin_customers(request: Request) -> HTMLResponse:
         )
         customers = []
     return templates.TemplateResponse(
+        request,
         "admin/customers.html",
         _ctx(request, {"customers": customers}),
     )
