@@ -4,7 +4,7 @@ Exposes one public coroutine:
 - update_plan_projection -- upsert the plan read-model.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -66,7 +66,7 @@ async def update_plan_projection(
     )
     read_model = read_result.scalar_one_or_none()
 
-    now = datetime.now(UTC)
+    now = datetime.utcnow()
 
     if read_model is None:
         read_model = PlanReadModel(

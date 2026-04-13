@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_service.models import ExpenseStatus, ExpenseSubmission
 from expense_service.producers.expense_events import publish_expense_decided
+from expense_service.projections.expense_projection import update_expense_projection
 from expense_service.schemas import ExpenseSubmissionCreate
 from shared.exceptions import ExpenseApprovalError
 from shared.logger import logger
@@ -50,6 +51,7 @@ async def create_expense(
     db.add(expense)
     await db.commit()
     await db.refresh(expense)
+    await update_expense_projection(expense.id, db)
     logger.info("Expense submission created: %s.", expense.id)
     return expense
 
@@ -125,6 +127,7 @@ async def submit_expense(
     expense.status = ExpenseStatus.pending_approval
     await db.commit()
     await db.refresh(expense)
+    await update_expense_projection(expense.id, db)
     logger.info(
         "Expense %s transitioned to pending_approval.", expense_id
     )
@@ -169,6 +172,7 @@ async def approve_expense(
     expense.decided_at = datetime.utcnow()
     await db.commit()
     await db.refresh(expense)
+    await update_expense_projection(expense.id, db)
     await publish_expense_decided(
         expense_id=expense.id,
         rep_id=expense.rep_id,
@@ -219,6 +223,7 @@ async def reject_expense(
     expense.decided_at = datetime.utcnow()
     await db.commit()
     await db.refresh(expense)
+    await update_expense_projection(expense.id, db)
     await publish_expense_decided(
         expense_id=expense.id,
         rep_id=expense.rep_id,
@@ -276,5 +281,6 @@ async def resubmit_expense(
     expense.decided_at = None
     await db.commit()
     await db.refresh(expense)
+    await update_expense_projection(expense.id, db)
     logger.info("Expense %s resubmitted.", expense_id)
     return expense

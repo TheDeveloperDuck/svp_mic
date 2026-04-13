@@ -34,6 +34,7 @@ from planning_service.models import (
     Visit,
     VisitStatus,
 )
+from planning_service.projections.plan_projection import update_plan_projection
 from planning_service.schemas import CallCreate, DayPlanCreate, VisitCreate
 from shared.exceptions import PlanConfirmationError, VisitCompletionError
 from shared.logger import logger
@@ -53,6 +54,7 @@ async def create_plan(payload: DayPlanCreate, db: AsyncSession) -> DayPlan:
     db.add(plan)
     await db.commit()
     await db.refresh(plan)
+    await update_plan_projection(plan.id, db)
     logger.info("Plan created: %s.", plan.id)
     return plan
 
@@ -134,6 +136,7 @@ async def confirm_plan(plan_id: UUID, db: AsyncSession) -> DayPlan:
     db.add(outbox_row)
     await db.commit()
     await db.refresh(plan)
+    await update_plan_projection(plan.id, db)
     logger.info("Plan confirmed: %s.", plan_id)
     return plan
 
@@ -162,6 +165,7 @@ async def activate_plan(plan_id: UUID, db: AsyncSession) -> DayPlan:
     plan.status = DayPlanStatus.active
     await db.commit()
     await db.refresh(plan)
+    await update_plan_projection(plan.id, db)
     logger.info("Plan activated: %s.", plan_id)
     return plan
 
@@ -190,6 +194,7 @@ async def complete_plan(plan_id: UUID, db: AsyncSession) -> DayPlan:
     plan.status = DayPlanStatus.completed
     await db.commit()
     await db.refresh(plan)
+    await update_plan_projection(plan.id, db)
     logger.info("Plan completed: %s.", plan_id)
     return plan
 
@@ -217,6 +222,7 @@ async def add_visit(plan_id: UUID, payload: VisitCreate, db: AsyncSession) -> Vi
     db.add(visit)
     await db.commit()
     await db.refresh(visit)
+    await update_plan_projection(plan_id, db)
     logger.debug("Visit added to plan %s: %s.", plan_id, visit.id)
     return visit
 
@@ -244,6 +250,7 @@ async def add_call(plan_id: UUID, payload: CallCreate, db: AsyncSession) -> Call
     db.add(call)
     await db.commit()
     await db.refresh(call)
+    await update_plan_projection(plan_id, db)
     logger.debug("Call added to plan %s: %s.", plan_id, call.id)
     return call
 
@@ -290,6 +297,7 @@ async def update_visit(
 
     await db.commit()
     await db.refresh(visit)
+    await update_plan_projection(plan_id, db)
     logger.info("Visit updated: %s (status=%s).", visit_id, visit.status)
     return visit
 
@@ -329,5 +337,6 @@ async def update_call(
 
     await db.commit()
     await db.refresh(call)
+    await update_plan_projection(plan_id, db)
     logger.info("Call updated: %s (status=%s).", call_id, call.status)
     return call

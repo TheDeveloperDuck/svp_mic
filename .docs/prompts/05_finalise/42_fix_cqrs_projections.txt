@@ -1,0 +1,39 @@
+wire up the CQRS read-model projections in planning_service and
+expense_service so they are called after every state change.
+
+read the following files first:
+- planning_service/services/plan_service.py
+- planning_service/projections/plan_projection.py
+- expense_service/services/expense_service.py
+- expense_service/projections/expense_projection.py
+
+planning_service/services/plan_service.py:
+  import update_plan_projection from
+  planning_service.projections.plan_projection.
+
+  call await update_plan_projection(plan.id, db) after the
+  db.commit() and db.refresh() in each of these functions:
+  create_plan, confirm_plan, activate_plan, complete_plan,
+  add_visit, add_call, update_visit, update_call.
+
+expense_service/services/expense_service.py:
+  import update_expense_projection from
+  expense_service.projections.expense_projection.
+
+  call await update_expense_projection(expense.id, db) after the
+  db.commit() and db.refresh() in each of these functions:
+  create_expense, submit_expense, approve_expense, reject_expense,
+  resubmit_expense.
+
+also fix the datetime.now(UTC) calls in both projection files:
+- planning_service/projections/plan_projection.py
+- expense_service/projections/expense_projection.py
+
+replace every datetime.now(UTC) with datetime.utcnow() and remove
+UTC from the imports if no longer used.
+
+do not change any other logic.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

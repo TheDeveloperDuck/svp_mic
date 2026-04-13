@@ -4,7 +4,7 @@ Exposes one public coroutine:
 - update_expense_projection -- upsert the expense read-model row.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -50,7 +50,7 @@ async def update_expense_projection(
     )
     read_model = read_result.scalar_one_or_none()
 
-    now = datetime.now(UTC)
+    now = datetime.utcnow()
 
     if read_model is None:
         read_model = ExpenseReadModel(
