@@ -24,7 +24,7 @@ load_dotenv()
 _BOOTSTRAP_SERVERS: str = os.getenv(
     "KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"
 )
-_GROUP_ID: str = os.getenv("KAFKA_GROUP_ID", "expense_service")
+_GROUP_ID: str = os.getenv("EXPENSE_KAFKA_GROUP_ID", "expense_service")
 _CONSUME_TOPIC: str = "expense.decided"
 
 
