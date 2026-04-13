@@ -1,0 +1,37 @@
+fix approve_expense and reject_expense in
+expense_service/services/expense_service.py to call the Kafka
+producer after a successful decision.
+
+read expense_service/services/expense_service.py and
+expense_service/producers/expense_events.py first.
+
+in approve_expense, after await db.refresh(expense) and before
+the return, add:
+
+  await publish_expense_decided(
+      expense_id=expense.id,
+      rep_id=expense.rep_id,
+      decision="approved",
+      decided_by=manager_id,
+  )
+
+in reject_expense, after await db.refresh(expense) and before
+the return, add:
+
+  await publish_expense_decided(
+      expense_id=expense.id,
+      rep_id=expense.rep_id,
+      decision="rejected",
+      decided_by=manager_id,
+  )
+
+import publish_expense_decided from
+expense_service.producers.expense_events at the top of the file
+if it is not already imported.
+
+do not change any other functions.
+do not change any other files.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

@@ -27,6 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_service.models import ExpenseStatus, ExpenseSubmission
+from expense_service.producers.expense_events import publish_expense_decided
 from expense_service.schemas import ExpenseSubmissionCreate
 from shared.exceptions import ExpenseApprovalError
 from shared.logger import logger
@@ -168,6 +169,12 @@ async def approve_expense(
     expense.decided_at = datetime.utcnow()
     await db.commit()
     await db.refresh(expense)
+    await publish_expense_decided(
+        expense_id=expense.id,
+        rep_id=expense.rep_id,
+        decision="approved",
+        decided_by=manager_id,
+    )
     logger.info(
         "Expense %s approved by manager %s.", expense_id, manager_id
     )
@@ -212,6 +219,12 @@ async def reject_expense(
     expense.decided_at = datetime.utcnow()
     await db.commit()
     await db.refresh(expense)
+    await publish_expense_decided(
+        expense_id=expense.id,
+        rep_id=expense.rep_id,
+        decision="rejected",
+        decided_by=manager_id,
+    )
     logger.info(
         "Expense %s rejected by manager %s.", expense_id, manager_id
     )
