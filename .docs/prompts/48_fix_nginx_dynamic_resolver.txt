@@ -1,0 +1,27 @@
+fix nginx/nginx.conf so that upstream hostnames are re-resolved
+dynamically on every request rather than only at startup.
+
+the current config has resolver 127.0.0.11 valid=10s but uses
+literal hostnames in proxy_pass. nginx only re-resolves when the
+hostname is stored in a variable — literal hostnames in proxy_pass
+are resolved once at startup and cached forever regardless of the
+resolver directive.
+
+for every location block, assign the upstream to a set variable
+and use that variable in proxy_pass instead of the literal hostname.
+
+example pattern:
+  location /api/customers {
+      set $upstream http://customer_user_service:8000;
+      rewrite ^/api(/.*)$ $1 break;
+      proxy_pass $upstream;
+  }
+
+apply this pattern to all five location blocks:
+  /api/customers → customer_user_service:8000
+  /api/users     → customer_user_service:8000
+  /api/plans     → planning_service:8000
+  /api/expenses  → expense_service:8000
+  /              → frontend_service:8000
+
+do not change anything else in the file.
