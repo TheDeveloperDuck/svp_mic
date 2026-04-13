@@ -1,0 +1,39 @@
+create tests/test_plans.py for the svp_mic integration test suite.
+
+read tests/conftest.py first to understand the available fixtures
+and the base_url in use.
+
+also read planning_service/routers/plans.py and
+planning_service/schemas.py to understand the exact request and
+response shapes.
+
+write async pytest tests covering all of the following cases:
+
+- create a plan with a valid rep_id, assert 201 and status is "draft"
+- create a plan with a nonexistent rep_id UUID, assert 404 or 422
+- create a plan with missing date field, assert 422
+- create a plan with missing start_location field, assert 422
+- create a plan with missing end_location field, assert 422
+- add a visit to a plan, assert 201 and correct fields
+- add a visit with missing customer_id, assert 422
+- add a visit with missing scheduled_order, assert 422
+- confirm a plan with no visits or calls, assert 422
+- confirm a plan after adding a visit, assert 200 and status is
+  "confirmed"
+- confirm an already confirmed plan, assert 409
+- activate a confirmed plan via PATCH /api/plans/{id}/activate,
+  assert 200 and status is "active"
+- activate a draft plan (invalid transition), assert 409
+- complete an active plan via PATCH /api/plans/{id}/complete,
+  assert 200 and status is "completed"
+- complete a draft plan (invalid transition), assert 409
+- list plans via GET /api/plans, assert 200 and response is a list
+- get a plan with a nonexistent UUID, assert 404
+
+use the seed_users and seed_customer fixtures where a valid rep_id
+or customer_id is needed. create fresh plans inside each test so
+tests are self-contained.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
