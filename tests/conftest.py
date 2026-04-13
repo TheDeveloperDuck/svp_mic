@@ -17,7 +17,7 @@ import httpx
 import pytest
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def client():
     """Yield a shared async HTTP client targeting the local nginx gateway.
 
@@ -28,7 +28,7 @@ async def client():
         yield c
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def unique_suffix():
     """Return an 8-character hex string for unique resource naming.
 
@@ -41,7 +41,7 @@ def unique_suffix():
     return secrets.token_hex(4)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def seed_users(client, unique_suffix):
     """Create one sales_rep and one manager and yield their response data.
 
@@ -77,7 +77,7 @@ async def seed_users(client, unique_suffix):
     yield {"rep": rep_resp.json(), "manager": manager_resp.json()}
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def seed_customer(client, unique_suffix):
     """Create one customer and yield the full response JSON.
 
@@ -98,7 +98,7 @@ async def seed_customer(client, unique_suffix):
     yield resp.json()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def seed_plan(client, seed_users, seed_customer):
     """Create a day plan for the rep with one visit and yield their data.
 

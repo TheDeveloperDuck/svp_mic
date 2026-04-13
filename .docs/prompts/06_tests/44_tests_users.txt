@@ -1,0 +1,35 @@
+create tests/test_users.py for the svp_mic integration test suite.
+
+read tests/conftest.py first to understand the available fixtures
+and the base_url in use.
+
+also read customer_user_service/routers/users.py and
+customer_user_service/schemas.py to understand the exact request
+and response shapes.
+
+write async pytest tests covering all of the following cases:
+
+- create a sales_rep user with valid data, assert 201 and correct
+  fields in response (id, name, email, role, is_active)
+- create a manager user with valid data, assert 201 and correct fields
+- create a user with a duplicate email, assert 409
+- create a user with missing name field, assert 422
+- create a user with missing email field, assert 422
+- create a user with missing password field, assert 422
+- create a user with missing role field, assert 422
+- create a user with an invalid role value, assert 422
+- list all users via GET /api/users, assert 200 and response is a list
+- get a specific user by ID via GET /api/users/{id}, assert 200 and
+  id matches
+- get a user with a nonexistent UUID, assert 404
+
+each test that creates a user must use a unique email derived from
+the unique_suffix fixture so tests never conflict with each other
+or with leftover data from previous runs.
+
+do not use the seed_users fixture in this file — create users
+directly in each test so each case is self-contained.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
