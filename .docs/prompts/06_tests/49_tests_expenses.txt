@@ -1,0 +1,39 @@
+create tests/test_expenses.py for the svp_mic integration test suite.
+
+read tests/conftest.py first to understand the available fixtures
+and the base_url in use.
+
+also read expense_service/routers/expenses.py and
+expense_service/schemas.py to understand the exact request and
+response shapes.
+
+write async pytest tests covering all of the following cases:
+
+- create an expense with valid data, assert 201 and status is
+  "submitted"
+- create an expense with missing rep_id, assert 422
+- create an expense with missing plan_id, assert 422
+- create an expense with missing category, assert 422
+- create an expense with missing amount, assert 422
+- submit an expense via PATCH /api/expenses/{id}/submit, assert 200
+  and status is "pending_approval"
+- submit an already pending expense, assert 409
+- approve a pending expense via PATCH /api/expenses/{id}/approve,
+  assert 200 and status is "approved" and decided_at is not null
+- approve an already approved expense, assert 409
+- reject a pending expense via PATCH /api/expenses/{id}/reject,
+  assert 200 and status is "rejected"
+- resubmit a rejected expense via PATCH /api/expenses/{id}/resubmit,
+  assert 200 and status is "submitted"
+- resubmit an approved expense (invalid), assert 409
+- list expenses via GET /api/expenses, assert 200 and response is
+  a list
+- get an expense with a nonexistent UUID, assert 404
+
+use the seed_users and seed_plan fixtures where valid rep_id and
+plan_id are needed. create fresh expenses inside each test so
+tests are self-contained.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

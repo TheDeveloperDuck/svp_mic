@@ -116,7 +116,7 @@ async def seed_plan(client, seed_users, seed_customer):
 
     plan_resp = await client.post(
         "/api/plans",
-        json={"rep_id": rep_id, "date": "2026-04-14"},
+        json={"rep_id": rep_id, "date": "2026-04-14", "start_location": "Dublin", "end_location": "Cork"},
     )
     plan_resp.raise_for_status()
     plan = plan_resp.json()
