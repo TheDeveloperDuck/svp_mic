@@ -1,0 +1,19 @@
+fix confirm_plan in planning_service/services/plan_service.py to write
+an outbox row atomically when a plan is confirmed.
+
+read planning_service/services/plan_service.py and planning_service/models.py first.
+
+in the confirm_plan function, after setting plan.status = DayPlanStatus.confirmed
+and before the commit, insert an Outbox row with:
+  - topic = "plan.confirmed"
+  - payload = json with keys: plan_id, rep_id (both as strings)
+
+the Outbox row must be added to the same session before the commit so
+both the status update and the outbox insert are atomic.
+
+do not change any other functions.
+do not change any other files.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

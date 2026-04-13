@@ -30,6 +30,7 @@ from planning_service.models import (
     CallStatus,
     DayPlan,
     DayPlanStatus,
+    Outbox,
     Visit,
     VisitStatus,
 )
@@ -125,6 +126,12 @@ async def confirm_plan(plan_id: UUID, db: AsyncSession) -> DayPlan:
         )
 
     plan.status = DayPlanStatus.confirmed
+    outbox_row = Outbox(
+        event_type="plan.confirmed",
+        aggregate_id=plan.id,
+        payload={"plan_id": str(plan.id), "rep_id": str(plan.rep_id)},
+    )
+    db.add(outbox_row)
     await db.commit()
     await db.refresh(plan)
     logger.info("Plan confirmed: %s.", plan_id)
