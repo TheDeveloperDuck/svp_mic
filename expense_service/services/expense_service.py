@@ -19,7 +19,7 @@ Exposed async functions:
 - resubmit_expense
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -165,7 +165,7 @@ async def approve_expense(
 
     expense.status = ExpenseStatus.approved
     expense.decided_by = manager_id
-    expense.decided_at = datetime.now(UTC)
+    expense.decided_at = datetime.utcnow()
     await db.commit()
     await db.refresh(expense)
     logger.info(
@@ -209,7 +209,7 @@ async def reject_expense(
 
     expense.status = ExpenseStatus.rejected
     expense.decided_by = manager_id
-    expense.decided_at = datetime.now(UTC)
+    expense.decided_at = datetime.utcnow()
     await db.commit()
     await db.refresh(expense)
     logger.info(

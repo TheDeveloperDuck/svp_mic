@@ -1,0 +1,19 @@
+fix the timezone-aware datetime mismatch in expense_service.
+
+the error is:
+  can't subtract offset-naive and offset-aware datetimes
+  decided_at column is TIMESTAMP WITHOUT TIME ZONE but the code
+  passes datetime.now(UTC)
+
+read expense_service/services/expense_service.py first.
+
+find every instance of datetime.now(UTC) in that file and replace
+with datetime.utcnow().
+
+remove UTC from the import if it is no longer used after the change.
+
+do not change any other files.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
