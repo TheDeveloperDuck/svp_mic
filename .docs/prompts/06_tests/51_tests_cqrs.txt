@@ -1,0 +1,42 @@
+create tests/test_cqrs.py for the svp_mic integration test suite.
+
+read tests/conftest.py first to understand the available fixtures
+and the base_url in use.
+
+also read:
+- planning_service/routers/plans_read.py
+- expense_service/routers/expenses_read.py
+
+write async pytest tests covering all of the following cases:
+
+- after creating a plan, GET /api/plans/read/history and assert the
+  plan appears with correct rep_id, status "draft", visit_count 0,
+  and call_count 0
+
+- after adding a visit to a plan, GET /api/plans/read/history and
+  assert visit_count is 1 for that plan
+
+- after confirming a plan, GET /api/plans/read/history and assert
+  status is "confirmed" for that plan
+
+- GET /api/plans/read/rep/{rep_id} returns only plans for that rep
+
+- GET /api/plans/read/active returns only plans with status "active"
+
+- after creating an expense, GET /api/expenses/read/history and
+  assert the expense appears with status "submitted"
+
+- after approving an expense, GET /api/expenses/read/history and
+  assert status is "approved" and decided_at is not null for that
+  expense
+
+- GET /api/expenses/read/rep/{rep_id} returns only expenses for
+  that rep
+
+create fresh data inside each test. use seed_users, seed_customer,
+and seed_plan fixtures where convenient but create additional
+resources inside the test as needed.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
