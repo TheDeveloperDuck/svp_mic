@@ -1,0 +1,35 @@
+create tests/conftest.py for the svp_mic integration test suite.
+
+the tests hit the running docker stack at http://localhost via nginx.
+do not import any service code. all interaction is over http.
+
+requirements:
+- pytest-asyncio with asyncio_mode = "auto"
+- a single shared httpx.AsyncClient with base_url="http://localhost"
+  provided as a session-scoped pytest fixture called "client"
+- a helper fixture called "unique_suffix" that returns a short random
+  string (8 hex chars) so each test can create unique names and emails
+  without conflicting with other test runs or leftover data
+- a fixture called "seed_users" that creates one sales_rep and one
+  manager using unique names/emails derived from unique_suffix, yields
+  a dict with keys "rep" and "manager" containing the full response
+  json, then does nothing on teardown (no cleanup needed)
+- a fixture called "seed_customer" that depends on "client" and
+  "unique_suffix", creates one customer with a unique name, yields the
+  full response json, then does nothing on teardown
+- a fixture called "seed_plan" that depends on "client", "seed_users",
+  and "seed_customer", creates a day plan for the rep, adds one visit
+  for the customer, yields a dict with keys "plan" and "visit"
+  containing the full response json for each, then does nothing on
+  teardown
+
+also create a pytest.ini at the project root with:
+  [pytest]
+  asyncio_mode = auto
+  testpaths = tests
+
+do not create any test files yet.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
