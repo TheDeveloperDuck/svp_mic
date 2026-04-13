@@ -8,7 +8,7 @@ Defines two database tables:
 
 import enum
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
@@ -102,7 +102,7 @@ class ExpenseSubmission(Base):
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
     decided_at: Mapped[datetime | None] = mapped_column(
         DateTime,
@@ -176,7 +176,7 @@ class ExpenseReadModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     def __repr__(self) -> str:

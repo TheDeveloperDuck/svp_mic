@@ -1,0 +1,20 @@
+fix the timezone-aware datetime mismatch in planning_service and expense_service.
+
+the error is:
+  can't subtract offset-naive and offset-aware datetimes
+  columns are TIMESTAMP WITHOUT TIME ZONE but the code passes
+  datetime.datetime(..., tzinfo=datetime.timezone.utc)
+
+read planning_service/models.py and expense_service/models.py first.
+
+for every DateTime column default that uses datetime.now(UTC) or
+datetime.now(timezone.utc), change it to datetime.utcnow.
+
+remove UTC or timezone from the import if it is no longer used.
+
+do not change column types.
+do not change any other files.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.

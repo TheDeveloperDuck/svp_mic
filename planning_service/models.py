@@ -11,7 +11,7 @@ Defines five database tables:
 
 import enum
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -103,7 +103,7 @@ class DayPlan(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     # Relationships
@@ -169,7 +169,7 @@ class Visit(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     # Relationships
@@ -235,7 +235,7 @@ class Call(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     # Relationships
@@ -290,7 +290,7 @@ class Outbox(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     def __repr__(self) -> str:
@@ -341,12 +341,12 @@ class PlanReadModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(UTC),
+        default=datetime.utcnow,
     )
 
     def __repr__(self) -> str:
