@@ -113,7 +113,14 @@ async def create_plan(
     Return value:
     DayPlanResponse -- the newly created plan.
     """
-    plan = await plan_service.create_plan(payload, db)
+    try:
+        plan = await plan_service.create_plan(payload, db)
+    except ValueError as exc:
+        logger.warning("Plan creation rejected: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
     logger.debug("POST /plans → created plan %s.", plan.id)
     return DayPlanResponse.model_validate(plan)
 

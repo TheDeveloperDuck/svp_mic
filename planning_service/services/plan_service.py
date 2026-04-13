@@ -22,6 +22,7 @@ Exposed async functions:
 
 from uuid import UUID
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +44,9 @@ from shared.logger import logger
 async def create_plan(payload: DayPlanCreate, db: AsyncSession) -> DayPlan:
     """Create a new day plan in ``draft`` state.
 
+    Raises ``ValueError`` if the ``rep_id`` does not correspond to a known
+    user in the Customer User Service.
+
     Arguments:
     payload -- validated creation data.
     db      -- active database session.
@@ -50,6 +54,13 @@ async def create_plan(payload: DayPlanCreate, db: AsyncSession) -> DayPlan:
     Return value:
     DayPlan -- the newly persisted plan ORM instance.
     """
+    async with httpx.AsyncClient() as http:
+        rep_resp = await http.get(
+            f"http://customer_user_service:8000/users/{payload.rep_id}"
+        )
+    if rep_resp.status_code == 404:
+        raise ValueError(f"Rep {payload.rep_id} not found.")
+
     plan = DayPlan(**payload.model_dump())
     db.add(plan)
     await db.commit()

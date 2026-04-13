@@ -37,8 +37,8 @@ class DayPlanCreate(BaseModel):
 
     rep_id: UUID
     date: date
-    start_location: str | None = None
-    end_location: str | None = None
+    start_location: str
+    end_location: str
 
 
 class DayPlanResponse(BaseModel):

@@ -1,0 +1,22 @@
+fix validation in planning_service so that:
+
+1. start_location and end_location are required fields.
+   read planning_service/schemas.py and change start_location and
+   end_location in DayPlanCreate from optional (str | None = None)
+   to required (str).
+
+2. rep_id is validated against the users table before creating a plan.
+   read planning_service/services/plan_service.py and
+   planning_service/routers/plans.py.
+   in create_plan in plan_service.py, before creating the DayPlan,
+   make an httpx GET request to the customer_user_service at
+   http://customer_user_service:8000/users/{rep_id}.
+   if the response is 404, raise a ValueError with the message
+   "Rep {rep_id} not found."
+   the router should catch this ValueError and return 404.
+
+do not change any other validation or logic.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
