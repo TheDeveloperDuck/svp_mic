@@ -1,0 +1,37 @@
+create tests/test_saga.py for the svp_mic integration test suite.
+
+read tests/conftest.py first to understand the available fixtures
+and the base_url in use.
+
+also read:
+- planning_service/consumers/customer_events.py
+- customer_user_service/routers/customers.py
+
+write async pytest tests covering all of the following cases:
+
+- deactivate a customer that has no active plans, assert 200 and
+  is_active is false. check planning_service logs are not needed,
+  just assert the HTTP response is correct.
+
+- deactivate a customer that has a confirmed plan. after deactivation,
+  fetch the plan via GET /api/plans/{plan_id} and assert its status
+  has been rolled back to "draft". allow up to 5 seconds for the
+  rollback to propagate via Kafka before asserting.
+
+- deactivate a customer that has an active plan (status "active").
+  after deactivation, fetch the plan and assert its status has been
+  rolled back to "draft". allow up to 5 seconds for the rollback.
+
+- deactivating an already inactive customer returns 409.
+
+for the rollback tests, create fresh users, customers, and plans
+inside the test. do not rely on seed fixtures for the customer being
+deactivated since deactivation is destructive and cannot be undone.
+
+to poll for the rollback, use a short asyncio.sleep loop retrying
+the GET /api/plans/{plan_id} call up to 10 times with 0.5 second
+intervals, breaking as soon as status is "draft".
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
