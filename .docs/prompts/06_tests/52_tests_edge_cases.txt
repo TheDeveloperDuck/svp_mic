@@ -1,0 +1,43 @@
+create tests/test_edge_cases.py for the svp_mic integration test suite.
+
+read tests/conftest.py first to understand the available fixtures
+and the base_url in use.
+
+write async pytest tests covering all of the following cases:
+
+- GET /api/plans with no plans for a specific rep UUID returns 200
+  and an empty list (use a random UUID as rep_id query param)
+
+- GET /api/expenses with no expenses for a specific rep UUID returns
+  200 and an empty list (use a random UUID as rep_id query param)
+
+- GET /api/plans/read/history with a rep_id that has no plans returns
+  200 and an empty list
+
+- GET /api/expenses/read/history with a rep_id that has no expenses
+  returns 200 and an empty list
+
+- GET /api/plans/{id} with a random UUID returns 404
+
+- GET /api/expenses/{id} with a random UUID returns 404
+
+- GET /api/users/{id} with a random UUID returns 404
+
+- GET /api/customers/{id} with a random UUID returns 404
+
+- POST /api/plans with a completely empty body returns 422
+
+- POST /api/expenses with a completely empty body returns 422
+
+- POST /api/users with a completely empty body returns 422
+
+- POST /api/customers with a completely empty body returns 422
+
+- POST /api/plans/{id}/visits with a random plan UUID returns 404
+
+do not use any seed fixtures. all tests are self-contained using
+only the client fixture and uuid.uuid4() for random UUIDs.
+
+pep8:
+follow pep8 at .claude/pep8_python.md.
+follow pep257 at .claude/pep257_python_docstring.md.
