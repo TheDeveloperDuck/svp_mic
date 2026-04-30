@@ -1,0 +1,35 @@
+Create a Python script that builds all service images, creates the KinD cluster, loads images, and applies all manifests in the correct order.
+
+files:
+- plat_scripts/deploy.py
+
+deploy.py:
+use subprocess and pathlib, no third-party dependencies.
+resolve the project root as two levels up from this script's location.
+create KinD cluster named svp if it does not already exist, check with kind get clusters.
+build docker image svp/customer-user-service:latest from customer_user_service/Dockerfile, context customer_user_service/.
+build docker image svp/planning-service:latest from planning_service/Dockerfile, context planning_service/.
+build docker image svp/expense-service:latest from expense_service/Dockerfile, context expense_service/.
+build docker image svp/frontend-service:latest from frontend_service/Dockerfile, context frontend_service/.
+load all four images into the KinD cluster with kind load docker-image --name svp.
+apply k8s/namespace.yaml.
+apply k8s/configmap.yaml then k8s/secret.yaml.
+apply all files in k8s/postgres/, k8s/redis/, k8s/kafka/.
+wait for StatefulSets customer-user-db, planning-db, expense-db, redis, zookeeper, kafka to be ready in namespace svp using kubectl rollout status.
+apply all files in k8s/customer-user-service/, k8s/planning-service/, k8s/expense-service/, k8s/frontend-service/.
+print kubectl get pods -n svp at the end.
+print a clear status message before each major step.
+raise an exception and exit with code 1 on any subprocess failure.
+use a run() helper that prints the command before executing it and streams output in real time.
+
+imports / dependencies:
+subprocess, pathlib, sys from standard library only.
+KinD cluster name: svp.
+all manifests under k8s/ relative to project root.
+images tagged svp/<service-name>:latest.
+kubectl and kind must be installed and on PATH.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
