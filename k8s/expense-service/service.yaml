@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: expense-service
+  namespace: svp
+spec:
+  type: ClusterIP
+  selector:
+    app: expense-service
+  ports:
+    - port: 8003
+      targetPort: 8000

@@ -1,0 +1,176 @@
+Create Kubernetes manifests for all workloads, services, config, and migrations in k8s/.
+
+files:
+- k8s/namespace.yaml
+- k8s/configmap.yaml
+- k8s/secret.yaml
+- k8s/postgres/customer-user-db.yaml
+- k8s/postgres/planning-db.yaml
+- k8s/postgres/expense-db.yaml
+- k8s/redis/redis.yaml
+- k8s/kafka/zookeeper.yaml
+- k8s/kafka/kafka.yaml
+- k8s/customer-user-service/deployment.yaml
+- k8s/customer-user-service/service.yaml
+- k8s/planning-service/deployment.yaml
+- k8s/planning-service/service.yaml
+- k8s/expense-service/deployment.yaml
+- k8s/expense-service/service.yaml
+- k8s/frontend-service/deployment.yaml
+- k8s/frontend-service/service.yaml
+
+namespace.yaml:
+create namespace svp.
+all resources belong to this namespace.
+
+configmap.yaml:
+single ConfigMap named svp-config in namespace svp.
+non-sensitive config only.
+KAFKA_BOOTSTRAP_SERVERS=kafka.svp.svc.cluster.local:9092
+REDIS_URL=redis://redis.svp.svc.cluster.local:6379
+LOG_LEVEL=INFO
+POSTGRES_HOST_CUSTOMER_USER=customer-user-db.svp.svc.cluster.local
+POSTGRES_HOST_PLANNING=planning-db.svp.svc.cluster.local
+POSTGRES_HOST_EXPENSE=expense-db.svp.svc.cluster.local
+POSTGRES_PORT=5432
+
+secret.yaml:
+single Secret named svp-secret in namespace svp.
+type Opaque, values base64 encoded.
+POSTGRES_USER=svp_user
+POSTGRES_PASSWORD=svp_pass
+POSTGRES_DB_CUSTOMER_USER=customer_user_db
+POSTGRES_DB_PLANNING=planning_db
+POSTGRES_DB_EXPENSE=expense_db
+DATABASE_URL_CUSTOMER_USER=postgresql+asyncpg://svp_user:svp_pass@customer-user-db.svp.svc.cluster.local:5432/customer_user_db
+DATABASE_URL_PLANNING=postgresql+asyncpg://svp_user:svp_pass@planning-db.svp.svc.cluster.local:5432/planning_db
+DATABASE_URL_EXPENSE=postgresql+asyncpg://svp_user:svp_pass@expense-db.svp.svc.cluster.local:5432/expense_db
+GOOGLE_MAPS_API_KEY=placeholder
+SECRET_KEY=placeholder
+
+postgres/customer-user-db.yaml:
+StatefulSet named customer-user-db, 1 replica, namespace svp.
+image postgres:15.
+env POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB from svp-secret.
+PersistentVolumeClaim 1Gi ReadWriteOnce mounted at /var/lib/postgresql/data.
+ClusterIP Service on port 5432.
+liveness probe: exec pg_isready -U svp_user.
+readiness probe: exec pg_isready -U svp_user.
+
+postgres/planning-db.yaml:
+same structure as customer-user-db.yaml.
+StatefulSet named planning-db.
+POSTGRES_DB=planning_db from svp-secret.
+ClusterIP Service on port 5432.
+
+postgres/expense-db.yaml:
+same structure as customer-user-db.yaml.
+StatefulSet named expense-db.
+POSTGRES_DB=expense_db from svp-secret.
+ClusterIP Service on port 5432.
+
+redis/redis.yaml:
+StatefulSet named redis, 1 replica, namespace svp.
+image redis:7-alpine.
+PersistentVolumeClaim 1Gi ReadWriteOnce mounted at /data.
+ClusterIP Service on port 6379.
+liveness probe: exec redis-cli ping.
+readiness probe: exec redis-cli ping.
+
+kafka/zookeeper.yaml:
+StatefulSet named zookeeper, 1 replica, namespace svp.
+image confluentinc/cp-zookeeper:7.5.0.
+env ZOOKEEPER_CLIENT_PORT=2181, ZOOKEEPER_TICK_TIME=2000.
+PersistentVolumeClaim 1Gi ReadWriteOnce.
+ClusterIP Service on port 2181.
+
+kafka/kafka.yaml:
+StatefulSet named kafka, 1 replica, namespace svp.
+image confluentinc/cp-kafka:7.5.0.
+env KAFKA_BROKER_ID=1.
+env KAFKA_ZOOKEEPER_CONNECT=zookeeper.svp.svc.cluster.local:2181.
+env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka.svp.svc.cluster.local:9092.
+env KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092.
+env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1.
+env KAFKA_AUTO_CREATE_TOPICS_ENABLE=true.
+PersistentVolumeClaim 2Gi ReadWriteOnce.
+ClusterIP Service on port 9092.
+readiness probe: exec kafka-broker-api-versions --bootstrap-server localhost:9092.
+
+customer-user-service/deployment.yaml:
+Deployment named customer-user-service, 1 replica, namespace svp.
+image svp/customer-user-service:latest.
+imagePullPolicy IfNotPresent.
+init container named migrate, same image, command: alembic upgrade head.
+init container env: DATABASE_URL from svp-secret key DATABASE_URL_CUSTOMER_USER.
+main container port 8001.
+env DATABASE_URL from svp-secret key DATABASE_URL_CUSTOMER_USER.
+env KAFKA_BOOTSTRAP_SERVERS, REDIS_URL, LOG_LEVEL from svp-config.
+liveness probe: httpGet /health port 8001, initialDelaySeconds 15.
+readiness probe: httpGet /health port 8001, initialDelaySeconds 10.
+
+customer-user-service/service.yaml:
+ClusterIP Service named customer-user-service, namespace svp.
+port 8001 targeting port 8001.
+
+planning-service/deployment.yaml:
+Deployment named planning-service, 1 replica, namespace svp.
+image svp/planning-service:latest.
+imagePullPolicy IfNotPresent.
+init container named migrate, same image, command: alembic upgrade head.
+init container env: DATABASE_URL from svp-secret key DATABASE_URL_PLANNING.
+main container port 8002.
+env DATABASE_URL from svp-secret key DATABASE_URL_PLANNING.
+env KAFKA_BOOTSTRAP_SERVERS, LOG_LEVEL from svp-config.
+env GOOGLE_MAPS_API_KEY from svp-secret.
+liveness probe: httpGet /health port 8002, initialDelaySeconds 15.
+readiness probe: httpGet /health port 8002, initialDelaySeconds 10.
+
+planning-service/service.yaml:
+ClusterIP Service named planning-service, namespace svp.
+port 8002 targeting port 8002.
+
+expense-service/deployment.yaml:
+Deployment named expense-service, 1 replica, namespace svp.
+image svp/expense-service:latest.
+imagePullPolicy IfNotPresent.
+init container named migrate, same image, command: alembic upgrade head.
+init container env: DATABASE_URL from svp-secret key DATABASE_URL_EXPENSE.
+main container port 8003.
+env DATABASE_URL from svp-secret key DATABASE_URL_EXPENSE.
+env KAFKA_BOOTSTRAP_SERVERS, LOG_LEVEL from svp-config.
+liveness probe: httpGet /health port 8003, initialDelaySeconds 15.
+readiness probe: httpGet /health port 8003, initialDelaySeconds 10.
+
+expense-service/service.yaml:
+ClusterIP Service named expense-service, namespace svp.
+port 8003 targeting port 8003.
+
+frontend-service/deployment.yaml:
+Deployment named frontend-service, 1 replica, namespace svp.
+image svp/frontend-service:latest.
+imagePullPolicy IfNotPresent.
+main container port 8000.
+env CUSTOMER_USER_SERVICE_URL=http://customer-user-service.svp.svc.cluster.local:8001.
+env PLANNING_SERVICE_URL=http://planning-service.svp.svc.cluster.local:8002.
+env EXPENSE_SERVICE_URL=http://expense-service.svp.svc.cluster.local:8003.
+env LOG_LEVEL from svp-config.
+liveness probe: httpGet /health port 8000, initialDelaySeconds 10.
+readiness probe: httpGet /health port 8000, initialDelaySeconds 5.
+
+frontend-service/service.yaml:
+ClusterIP Service named frontend-service, namespace svp.
+port 8000 targeting port 8000.
+
+imports / dependencies:
+existing Dockerfiles at customer_user_service/Dockerfile, planning_service/Dockerfile, expense_service/Dockerfile, frontend_service/Dockerfile.
+existing .env at project root for reference on variable names.
+images must be built and loaded with kind load docker-image before applying.
+all services connect to kafka at kafka.svp.svc.cluster.local:9092.
+all services connect to their own postgres instance, not a shared one.
+redis is used only by customer-user-service.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
