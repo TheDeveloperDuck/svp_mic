@@ -10,12 +10,13 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from shared.logger import logger
+from shared.tracing import build_tracing_headers
 
 from frontend_service.routers import pages
 
@@ -41,6 +42,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Frontend Service", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def log_trace_id(request: Request, call_next):
+    if trace_id := request.headers.get("x-b3-traceid"):
+        logger.info("trace_id=%s", trace_id)
+    return await call_next(request)
+
 
 app.mount(
     "/static",

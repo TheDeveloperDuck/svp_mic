@@ -25,6 +25,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from shared.logger import logger
+from shared.tracing import build_tracing_headers
 
 
 # Populated by main.py after the Jinja2Templates instance is created.
@@ -40,21 +41,22 @@ _TIMEOUT = 10.0
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-async def _get(url: str) -> Any:
+async def _get(url: str, headers: dict | None = None) -> Any:
     """Perform a GET request and return the parsed JSON body.
 
     On any ``httpx`` error the exception is logged and an empty list is
     returned so callers can degrade gracefully.
 
     Arguments:
-    url -- fully-qualified URL to request.
+    url     -- fully-qualified URL to request.
+    headers -- optional headers to forward (e.g. B3 tracing headers).
 
     Return value:
     Any -- parsed JSON value, or an empty list on error.
     """
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            response = await client.get(url)
+            response = await client.get(url, headers=headers or {})
             response.raise_for_status()
             return response.json()
     except httpx.HTTPError as exc:
@@ -106,7 +108,7 @@ async def rep_plan(request: Request) -> HTMLResponse:
     Return value:
     HTMLResponse -- rendered ``rep/plan.html`` template.
     """
-    customers = await _get(f"{_NGINX_BASE}/customers")
+    customers = await _get(f"{_NGINX_BASE}/customers", build_tracing_headers(request))
     if not isinstance(customers, list):
         logger.error(
             "Unexpected response type for /customers: %s",
@@ -129,7 +131,7 @@ async def rep_execute(request: Request) -> HTMLResponse:
     Return value:
     HTMLResponse -- rendered ``rep/execute.html`` template.
     """
-    plans = await _get(f"{_NGINX_BASE}/plans")
+    plans = await _get(f"{_NGINX_BASE}/plans", build_tracing_headers(request))
     if not isinstance(plans, list):
         logger.error(
             "Unexpected response type for /plans: %s",
@@ -164,7 +166,7 @@ async def rep_expenses(
     else:
         url = f"{_NGINX_BASE}/expenses"
 
-    expenses = await _get(url)
+    expenses = await _get(url, build_tracing_headers(request))
     if not isinstance(expenses, list):
         logger.error(
             "Unexpected response type for /expenses: %s",
@@ -188,7 +190,7 @@ async def manager_approvals(request: Request) -> HTMLResponse:
     Return value:
     HTMLResponse -- rendered ``manager/approvals.html`` template.
     """
-    expenses = await _get(f"{_NGINX_BASE}/expenses")
+    expenses = await _get(f"{_NGINX_BASE}/expenses", build_tracing_headers(request))
     if not isinstance(expenses, list):
         logger.error(
             "Unexpected response type for /expenses: %s",
@@ -212,7 +214,7 @@ async def manager_overview(request: Request) -> HTMLResponse:
     Return value:
     HTMLResponse -- rendered ``manager/overview.html`` template.
     """
-    plans = await _get(f"{_NGINX_BASE}/plans/read/history")
+    plans = await _get(f"{_NGINX_BASE}/plans/read/history", build_tracing_headers(request))
     if not isinstance(plans, list):
         logger.error(
             "Unexpected response type for /plans/read/history: %s",
@@ -220,7 +222,7 @@ async def manager_overview(request: Request) -> HTMLResponse:
         )
         plans = []
 
-    expenses = await _get(f"{_NGINX_BASE}/expenses/read/history")
+    expenses = await _get(f"{_NGINX_BASE}/expenses/read/history", build_tracing_headers(request))
     if not isinstance(expenses, list):
         logger.error(
             "Unexpected response type for /expenses/read/history: %s",
@@ -244,7 +246,7 @@ async def admin_users(request: Request) -> HTMLResponse:
     Return value:
     HTMLResponse -- rendered ``admin/users.html`` template.
     """
-    users = await _get(f"{_NGINX_BASE}/users")
+    users = await _get(f"{_NGINX_BASE}/users", build_tracing_headers(request))
     if not isinstance(users, list):
         logger.error(
             "Unexpected response type for /users: %s",
@@ -267,7 +269,7 @@ async def admin_customers(request: Request) -> HTMLResponse:
     Return value:
     HTMLResponse -- rendered ``admin/customers.html`` template.
     """
-    customers = await _get(f"{_NGINX_BASE}/customers")
+    customers = await _get(f"{_NGINX_BASE}/customers", build_tracing_headers(request))
     if not isinstance(customers, list):
         logger.error(
             "Unexpected response type for /customers: %s",

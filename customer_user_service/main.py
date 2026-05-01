@@ -13,11 +13,12 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from shared import exceptions  # noqa: F401  (imported for re-use across the service)
 from shared.logger import logger
+from shared.tracing import extract_tracing_headers
 
 from customer_user_service.consumers.plan_confirmed import consume_plan_confirmed
 from customer_user_service.database import engine
@@ -57,6 +58,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Customer User Service", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def log_trace_id(request: Request, call_next):
+    headers = extract_tracing_headers(request)
+    if trace_id := headers.get("x-b3-traceid"):
+        logger.info("trace_id=%s", trace_id)
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------------------

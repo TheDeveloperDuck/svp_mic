@@ -23,7 +23,7 @@ _MOCK_KEY: str = "mock_key"
 _MOCK_COORDINATES: dict = {"lat": 53.3498, "lng": -6.2603}
 
 
-async def get_coordinates(address: str) -> dict:
+async def get_coordinates(address: str, tracing_headers: dict | None = None) -> dict:
     """Resolve a street address to geographic coordinates.
 
     When the configured API key is ``mock_key``, the real API is bypassed
@@ -53,6 +53,7 @@ async def get_coordinates(address: str) -> dict:
         response = await client.get(
             _GEOCODING_URL,
             params={"address": address, "key": api_key},
+            headers=tracing_headers or {},
         )
 
     if response.status_code != 200:

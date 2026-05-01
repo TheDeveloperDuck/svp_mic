@@ -1,0 +1,51 @@
+Add Jaeger distributed tracing header propagation to all four FastAPI services.
+
+files:
+- shared/tracing.py
+- customer_user_service/main.py
+- planning_service/main.py
+- expense_service/main.py
+- frontend_service/main.py
+
+shared/tracing.py:
+create a module that extracts Istio/B3 tracing headers from an incoming FastAPI request and returns them as a dict.
+extract the following headers: x-request-id, x-b3-traceid, x-b3-spanid, x-b3-parentspanid, x-b3-sampled, x-b3-flags, x-forwarded-for.
+return only headers that are present in the incoming request, skip missing ones.
+create a function named extract_tracing_headers(request: Request) -> dict that does this.
+create a second function named build_tracing_headers(request: Request) -> dict that returns the same result, intended for passing to httpx or requests as headers on outbound calls.
+import Request from fastapi.
+
+customer_user_service/main.py:
+import extract_tracing_headers from shared.tracing.
+add a middleware that logs the trace id on each request if x-b3-traceid is present.
+no outbound HTTP calls in this service so no header forwarding needed beyond middleware logging.
+
+planning_service/main.py:
+import extract_tracing_headers and build_tracing_headers from shared.tracing.
+add a middleware that logs the trace id on each request if x-b3-traceid is present.
+the planning service calls the Google Maps API via httpx in maps_service.py, tracing headers should be available for forwarding there.
+pass build_tracing_headers to any httpx client calls as additional headers.
+
+expense_service/main.py:
+import extract_tracing_headers from shared.tracing.
+add a middleware that logs the trace id on each request if x-b3-traceid is present.
+no outbound HTTP calls in this service so no header forwarding needed beyond middleware logging.
+
+frontend_service/main.py:
+import build_tracing_headers from shared.tracing.
+the frontend service makes outbound httpx calls to customer-user-service, planning-service, and expense-service.
+read the existing routers/pages.py to find where httpx calls are made.
+ensure build_tracing_headers is passed as headers on every outbound httpx call in pages.py.
+add a middleware to main.py that logs the trace id on each request if x-b3-traceid is present.
+
+imports / dependencies:
+shared/tracing.py must only import from fastapi and the standard library.
+Request is from fastapi.
+existing httpx calls in frontend_service/routers/pages.py must be updated to forward headers.
+existing httpx calls in planning_service/services/maps_service.py must be updated to forward headers.
+read the existing files before modifying them.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
