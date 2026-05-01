@@ -1,0 +1,40 @@
+Create a Python script that installs the Istio observability addons and verifies they are running.
+
+files:
+- plat_scripts/install_observability.py
+
+install_observability.py:
+use subprocess and pathlib, no third-party dependencies.
+resolve PROJECT_ROOT as two levels up from this script's location.
+use a run() helper identical to deploy.py: prints the command, streams output live, raises SystemExit on non-zero return code.
+resolve ISTIO_DIR as PROJECT_ROOT / "istio-1.21.0".
+resolve ADDONS_DIR as ISTIO_DIR / "samples" / "addons".
+check ADDONS_DIR exists, exit with a clear message if not found.
+step 1: install Prometheus by applying ADDONS_DIR / "prometheus.yaml".
+step 2: install Jaeger by applying ADDONS_DIR / "jaeger.yaml".
+step 3: install Kiali by applying ADDONS_DIR / "kiali.yaml".
+step 4: install Grafana by applying ADDONS_DIR / "grafana.yaml".
+step 5: wait for all four deployments to be ready in istio-system namespace.
+  kubectl rollout status deployment/prometheus -n istio-system --timeout=120s.
+  kubectl rollout status deployment/jaeger -n istio-system --timeout=120s.
+  kubectl rollout status deployment/kiali -n istio-system --timeout=120s.
+  kubectl rollout status deployment/grafana -n istio-system --timeout=120s.
+step 6: print kubectl get pods -n istio-system to show final state.
+print a clear status message before each step.
+exit with code 1 on any failure.
+print instructions at the end showing how to access each dashboard via kubectl port-forward.
+  Kiali: kubectl port-forward -n istio-system svc/kiali 20001:20001
+  Grafana: kubectl port-forward -n istio-system svc/grafana 3000:3000
+  Jaeger: kubectl port-forward -n istio-system svc/tracing 16686:80
+  Prometheus: kubectl port-forward -n istio-system svc/prometheus 9090:9090
+
+imports / dependencies:
+subprocess, pathlib, sys from standard library only.
+Istio must be installed first via install_istio.py.
+addons live in the Istio release directory at istio-1.21.0/samples/addons/.
+kubectl context must be set to kind-svp.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
