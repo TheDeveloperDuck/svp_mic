@@ -1,0 +1,62 @@
+Create Kubernetes manifests for Istio mTLS strict mode and zero trust authorisation policies for the svp namespace.
+
+files:
+- k8s/istio/peer-authentication.yaml
+- k8s/istio/authorization/allow-customer-user-service.yaml
+- k8s/istio/authorization/allow-planning-service.yaml
+- k8s/istio/authorization/allow-expense-service.yaml
+- k8s/istio/authorization/allow-frontend-service.yaml
+- k8s/istio/authorization/allow-ingress-gateway.yaml
+
+peer-authentication.yaml:
+PeerAuthentication resource, namespace svp.
+name: default.
+spec.mtls.mode: STRICT.
+applies to all workloads in the namespace via empty selector.
+this enforces mTLS on all pod-to-pod communication in the svp namespace.
+
+allow-customer-user-service.yaml:
+AuthorizationPolicy named allow-customer-user-service, namespace svp.
+selector matching app: customer-user-service.
+allow ingress from frontend-service and istio-ingressgateway service accounts.
+source principals using cluster.local/ns/svp/sa/default for frontend and cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account for the gateway.
+action: ALLOW.
+
+allow-planning-service.yaml:
+AuthorizationPolicy named allow-planning-service, namespace svp.
+selector matching app: planning-service.
+allow ingress from frontend-service and istio-ingressgateway service accounts.
+same principals as above.
+action: ALLOW.
+
+allow-expense-service.yaml:
+AuthorizationPolicy named allow-expense-service, namespace svp.
+selector matching app: expense-service.
+allow ingress from frontend-service and istio-ingressgateway service accounts.
+same principals as above.
+action: ALLOW.
+
+allow-frontend-service.yaml:
+AuthorizationPolicy named allow-frontend-service, namespace svp.
+selector matching app: frontend-service.
+allow ingress from istio-ingressgateway service account only.
+source principal: cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account.
+action: ALLOW.
+
+allow-ingress-gateway.yaml:
+AuthorizationPolicy named allow-ingress-gateway, namespace istio-system.
+selector matching app: istio-ingressgateway.
+allow all ingress with no source restrictions.
+action: ALLOW.
+
+imports / dependencies:
+Istio must be installed and sidecars injected before applying these.
+PeerAuthentication is an Istio CRD, apiVersion: security.istio.io/v1beta1.
+AuthorizationPolicy is an Istio CRD, apiVersion: security.istio.io/v1beta1.
+all app pods use the default service account in the svp namespace.
+istio-ingressgateway uses service account istio-ingressgateway-service-account in istio-system.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
