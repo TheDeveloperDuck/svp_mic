@@ -1,0 +1,27 @@
+Add a --helm flag to plat_scripts/deploy.py that deploys using the Helm chart instead of raw manifests.
+
+files:
+- plat_scripts/deploy.py
+
+deploy.py:
+add argparse to parse a single optional flag --helm.
+if --helm is not passed, behaviour is identical to current: apply raw manifests in order, wait for StatefulSets, apply app services.
+if --helm is passed:
+  run the same steps 1 through 3 (create cluster, build images, load images).
+  skip steps 4 through 7 entirely.
+  replace them with a single helm install step: helm install svp k8s/helm/svp/ --namespace svp --create-namespace.
+  if the release already exists, run helm upgrade svp k8s/helm/svp/ --namespace svp instead.
+  check if release exists by running helm status svp --namespace svp with check=False and checking the return code.
+  final step remains kubectl get pods -n svp.
+update step labels to reflect the mode: raw manifest mode keeps current labels, helm mode labels the install step clearly.
+
+imports / dependencies:
+argparse from standard library.
+helm must be installed and on PATH.
+Helm chart at k8s/helm/svp/ relative to PROJECT_ROOT.
+all other imports unchanged.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.

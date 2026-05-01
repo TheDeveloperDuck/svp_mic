@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+import argparse
 import subprocess
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 K8S = PROJECT_ROOT / "k8s"
+HELM_CHART = K8S / "helm" / "svp"
 CLUSTER_NAME = "svp"
 NAMESPACE = "svp"
 
@@ -63,26 +65,16 @@ def apply_dir(directory: Path) -> None:
         run(["kubectl", "apply", "-f", str(manifest)])
 
 
-def main() -> None:
-    step("Step 1/8 — Create KinD cluster")
-    if cluster_exists():
-        print(f"Cluster '{CLUSTER_NAME}' already exists, skipping creation.")
-    else:
-        run(["kind", "create", "cluster", "--name", CLUSTER_NAME, "--config", str(K8S / "kind-config.yaml")])
+def helm_release_exists() -> bool:
+    result = subprocess.run(
+        ["helm", "status", CLUSTER_NAME, "--namespace", NAMESPACE],
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
 
-    step("Step 2/8 — Build Docker images")
-    for tag, dockerfile, context in IMAGES:
-        run([
-            "docker", "build",
-            "-t", tag,
-            "-f", str(PROJECT_ROOT / dockerfile),
-            str(PROJECT_ROOT),
-        ])
 
-    step("Step 3/8 — Load images into KinD cluster")
-    for tag, _, _ in IMAGES:
-        run(["kind", "load", "docker-image", tag, "--name", CLUSTER_NAME])
-
+def deploy_raw() -> None:
     step("Step 4/8 — Apply namespace, ConfigMap, and Secret")
     run(["kubectl", "apply", "-f", str(K8S / "namespace.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "configmap.yaml")])
@@ -107,6 +99,58 @@ def main() -> None:
 
     step("Step 8/8 — Show pod status")
     run(["kubectl", "get", "pods", "-n", NAMESPACE])
+
+
+def deploy_helm() -> None:
+    if helm_release_exists():
+        step("Step 4/4 — Helm upgrade existing release")
+        run(["helm", "upgrade", CLUSTER_NAME, str(HELM_CHART), "--namespace", NAMESPACE])
+    else:
+        step("Step 4/4 — Helm install release")
+        run([
+            "helm", "install", CLUSTER_NAME, str(HELM_CHART),
+            "--namespace", NAMESPACE,
+            "--create-namespace",
+        ])
+
+    step("Step 5/4 — Show pod status")
+    run(["kubectl", "get", "pods", "-n", NAMESPACE])
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Deploy SVP to a KinD cluster.")
+    parser.add_argument(
+        "--helm",
+        action="store_true",
+        help="Deploy using the Helm chart instead of raw manifests.",
+    )
+    args = parser.parse_args()
+
+    total = 4 if args.helm else 8
+
+    step(f"Step 1/{total} — Create KinD cluster")
+    if cluster_exists():
+        print(f"Cluster '{CLUSTER_NAME}' already exists, skipping creation.")
+    else:
+        run(["kind", "create", "cluster", "--name", CLUSTER_NAME, "--config", str(K8S / "kind-config.yaml")])
+
+    step(f"Step 2/{total} — Build Docker images")
+    for tag, dockerfile, context in IMAGES:
+        run([
+            "docker", "build",
+            "-t", tag,
+            "-f", str(PROJECT_ROOT / dockerfile),
+            str(PROJECT_ROOT),
+        ])
+
+    step(f"Step 3/{total} — Load images into KinD cluster")
+    for tag, _, _ in IMAGES:
+        run(["kind", "load", "docker-image", tag, "--name", CLUSTER_NAME])
+
+    if args.helm:
+        deploy_helm()
+    else:
+        deploy_raw()
 
 
 if __name__ == "__main__":
