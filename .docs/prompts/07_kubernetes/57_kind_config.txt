@@ -1,0 +1,25 @@
+Add a KinD cluster config file and update deploy.py to use it when creating the cluster.
+
+files:
+- k8s/kind-config.yaml
+- plat_scripts/deploy.py
+
+kind-config.yaml:
+create a KinD cluster config with one control-plane node and two worker nodes.
+set kind: Cluster and apiVersion: kind.x-k8s.io/v1alpha4.
+no special node configuration needed beyond the role definitions.
+
+deploy.py:
+update the kind create cluster command to pass --config pointing to k8s/kind-config.yaml.
+config path should be resolved relative to PROJECT_ROOT.
+all other logic stays the same.
+
+imports / dependencies:
+kind-config.yaml lives at k8s/kind-config.yaml relative to project root.
+PROJECT_ROOT already resolved as Path(__file__).resolve().parent.parent.
+kind create cluster --name svp --config <path>.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
