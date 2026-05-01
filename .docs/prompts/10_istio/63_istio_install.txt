@@ -1,0 +1,29 @@
+Create a Python script that installs Istio into the KinD cluster, enables sidecar injection on the svp namespace, and verifies all pods have sidecars.
+
+files:
+- plat_scripts/install_istio.py
+
+install_istio.py:
+use subprocess and pathlib, no third-party dependencies.
+resolve PROJECT_ROOT as two levels up from this script's location.
+use a run() helper identical to deploy.py: prints the command, streams output live, raises SystemExit on non-zero return code.
+step 1: check istioctl is available by running istioctl version --client, exit with a clear error message if not found.
+step 2: install Istio using istioctl install --set profile=demo -y.
+step 3: verify istio-system pods are ready by running kubectl rollout status deployment/istiod -n istio-system --timeout=120s.
+step 4: label the svp namespace for sidecar injection with kubectl label namespace svp istio-injection=enabled --overwrite.
+step 5: restart all deployments in the svp namespace so existing pods get sidecars injected, using kubectl rollout restart deployment -n svp.
+step 6: wait for all deployments in svp to finish rolling out, get deployment names with kubectl get deployments -n svp -o name, then run kubectl rollout status on each with --timeout=300s.
+step 7: print kubectl get pods -n svp and verify all app pods show 2/2 READY. print SIDECAR INJECTION VERIFIED if all app pods have 2 containers, SIDECAR INJECTION FAILED otherwise.
+print a clear status message before each step.
+exit with code 1 on any failure.
+
+imports / dependencies:
+subprocess, pathlib, sys from standard library only.
+istioctl must be installed and on PATH.
+cluster must already exist with kubectl context set to kind-svp.
+deploy.py must have been run first so pods are already running.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.

@@ -23,7 +23,7 @@ def step(msg: str) -> None:
 
 
 def check_istioctl() -> None:
-    step("Step 1/6 — Check istioctl is available")
+    step("Step 1/7 — Check istioctl is available")
     result = subprocess.run(
         ["istioctl", "version"],
         capture_output=True,
@@ -40,12 +40,22 @@ def check_istioctl() -> None:
 
 
 def install_istio() -> None:
-    step("Step 2/6 — Install Istio (demo profile)")
+    step("Step 2/7 — Install Istio (demo profile)")
     run(["istioctl", "install", "--set", "profile=demo", "-y"])
 
 
+def verify_istio_system() -> None:
+    step("Step 3/7 — Verify istiod is ready in istio-system")
+    run([
+        "kubectl", "rollout", "status",
+        "deployment/istiod",
+        "-n", "istio-system",
+        "--timeout=120s",
+    ])
+
+
 def label_namespace() -> None:
-    step("Step 3/6 — Enable sidecar injection on namespace")
+    step("Step 4/7 — Enable sidecar injection on namespace")
     run([
         "kubectl", "label", "namespace", NAMESPACE,
         "istio-injection=enabled",
@@ -54,25 +64,22 @@ def label_namespace() -> None:
 
 
 def restart_deployments() -> None:
-    step("Step 4/6 — Restart deployments to inject sidecars into existing pods")
+    step("Step 5/7 — Restart deployments to inject sidecars into existing pods")
     run(["kubectl", "rollout", "restart", "deployment", "-n", NAMESPACE])
 
 
 def wait_for_deployments() -> None:
-    step("Step 5/6 — Wait for all deployments to be ready (timeout 300s each)")
+    step("Step 6/7 — Wait for all deployments to be ready (timeout 300s each)")
     result = subprocess.run(
-        [
-            "kubectl", "get", "deployments",
-            "-n", NAMESPACE,
-            "-o", "jsonpath={.items[*].metadata.name}",
-        ],
+        ["kubectl", "get", "deployments", "-n", NAMESPACE, "-o", "name"],
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
         raise SystemExit("Failed to list deployments in namespace " + NAMESPACE)
 
-    deployments = result.stdout.split()
+    # Each line is already in "deployment/<name>" form
+    deployments = result.stdout.strip().splitlines()
     if not deployments:
         raise SystemExit(f"No deployments found in namespace {NAMESPACE}. Run deploy.py first.")
 
@@ -80,14 +87,14 @@ def wait_for_deployments() -> None:
     for deployment in deployments:
         run([
             "kubectl", "rollout", "status",
-            f"deployment/{deployment}",
+            deployment,
             "-n", NAMESPACE,
             "--timeout=300s",
         ])
 
 
 def verify_sidecars() -> None:
-    step("Step 6/6 — Verify sidecar injection (all app pods must show 2/2 READY)")
+    step("Step 7/7 — Verify sidecar injection (all app pods must show 2/2 READY)")
     result = subprocess.run(
         ["kubectl", "get", "pods", "-n", NAMESPACE],
         capture_output=True,
@@ -103,14 +110,15 @@ def verify_sidecars() -> None:
     if len(lines) <= 1:
         raise SystemExit(f"No pods found in namespace {NAMESPACE}.")
 
-    # Parse pod lines (skip header)
     failed_pods = []
     for line in lines[1:]:
         parts = line.split()
         if len(parts) < 3:
             continue
         name, ready, status = parts[0], parts[1], parts[2]
-        # Only check Running pods; ignore Terminating/Init/Completed
+        # Only check Deployment pods (svp-* prefix); skip StatefulSet pods
+        if not name.startswith("svp-"):
+            continue
         if status != "Running":
             continue
         if ready != "2/2":
@@ -119,14 +127,16 @@ def verify_sidecars() -> None:
     if failed_pods:
         for pod_name, pod_ready in failed_pods:
             print(f"  FAIL  {pod_name} — {pod_ready} READY (expected 2/2, sidecar missing?)")
-        raise SystemExit("FAIL — one or more pods do not have the Istio sidecar injected.")
+        print("\nSIDECAR INJECTION FAILED")
+        raise SystemExit(1)
 
-    print("PASS — all running pods have 2/2 containers (Istio sidecar present).")
+    print("SIDECAR INJECTION VERIFIED")
 
 
 def main() -> None:
     check_istioctl()
     install_istio()
+    verify_istio_system()
     label_namespace()
     restart_deployments()
     wait_for_deployments()

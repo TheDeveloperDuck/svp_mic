@@ -40,3 +40,4 @@ htmlcov/
 
 # Alembic
 alembic/versions/*.pyc
+istio-*/
