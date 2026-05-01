@@ -35,6 +35,8 @@ STATEFULSETS = [
     "kafka",
 ]
 
+CALICO_MANIFEST = "https://raw.githubusercontent.com/projectcalico/calico/v3.27.3/manifests/calico.yaml"
+
 
 def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
     print(f"\n$ {' '.join(str(c) for c in cmd)}")
@@ -60,6 +62,22 @@ def cluster_exists() -> bool:
     return CLUSTER_NAME in result.stdout.splitlines()
 
 
+def install_calico() -> None:
+    run(["kubectl", "apply", "-f", CALICO_MANIFEST])
+    run([
+        "kubectl", "rollout", "status",
+        "daemonset/calico-node",
+        "-n", "kube-system",
+        "--timeout=120s",
+    ])
+    run([
+        "kubectl", "rollout", "status",
+        "deployment/calico-kube-controllers",
+        "-n", "kube-system",
+        "--timeout=120s",
+    ])
+
+
 def apply_dir(directory: Path) -> None:
     for manifest in sorted(directory.glob("*.yaml")):
         run(["kubectl", "apply", "-f", str(manifest)])
@@ -75,16 +93,16 @@ def helm_release_exists() -> bool:
 
 
 def deploy_raw() -> None:
-    step("Step 4/8 — Apply namespace, ConfigMap, and Secret")
+    step("Step 5/9 — Apply namespace, ConfigMap, and Secret")
     run(["kubectl", "apply", "-f", str(K8S / "namespace.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "configmap.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "secret.yaml")])
 
-    step("Step 5/8 — Apply infrastructure (Postgres, Redis, Kafka)")
+    step("Step 6/9 — Apply infrastructure (Postgres, Redis, Kafka)")
     for d in INFRASTRUCTURE_DIRS:
         apply_dir(K8S / d)
 
-    step("Step 6/8 — Wait for infrastructure StatefulSets to be ready")
+    step("Step 7/9 — Wait for infrastructure StatefulSets to be ready")
     for sts in STATEFULSETS:
         run([
             "kubectl", "rollout", "status",
@@ -93,27 +111,27 @@ def deploy_raw() -> None:
             "--timeout=300s",
         ])
 
-    step("Step 7/8 — Apply application services")
+    step("Step 8/9 — Apply application services")
     for d in APP_DIRS:
         apply_dir(K8S / d)
 
-    step("Step 8/8 — Show pod status")
+    step("Step 9/9 — Show pod status")
     run(["kubectl", "get", "pods", "-n", NAMESPACE])
 
 
 def deploy_helm() -> None:
     if helm_release_exists():
-        step("Step 4/4 — Helm upgrade existing release")
+        step("Step 5/5 — Helm upgrade existing release")
         run(["helm", "upgrade", CLUSTER_NAME, str(HELM_CHART), "--namespace", NAMESPACE])
     else:
-        step("Step 4/4 — Helm install release")
+        step("Step 5/5 — Helm install release")
         run([
             "helm", "install", CLUSTER_NAME, str(HELM_CHART),
             "--namespace", NAMESPACE,
             "--create-namespace",
         ])
 
-    step("Step 5/4 — Show pod status")
+    step("Step 6/5 — Show pod status")
     run(["kubectl", "get", "pods", "-n", NAMESPACE])
 
 
@@ -126,7 +144,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    total = 4 if args.helm else 8
+    total = 5 if args.helm else 9
 
     step(f"Step 1/{total} — Create KinD cluster")
     if cluster_exists():
@@ -134,7 +152,10 @@ def main() -> None:
     else:
         run(["kind", "create", "cluster", "--name", CLUSTER_NAME, "--config", str(K8S / "kind-config.yaml")])
 
-    step(f"Step 2/{total} — Build Docker images")
+    step(f"Step 2/{total} — Install Calico CNI")
+    install_calico()
+
+    step(f"Step 3/{total} — Build Docker images")
     for tag, dockerfile, context in IMAGES:
         run([
             "docker", "build",
@@ -143,7 +164,7 @@ def main() -> None:
             str(PROJECT_ROOT),
         ])
 
-    step(f"Step 3/{total} — Load images into KinD cluster")
+    step(f"Step 4/{total} — Load images into KinD cluster")
     for tag, _, _ in IMAGES:
         run(["kind", "load", "docker-image", tag, "--name", CLUSTER_NAME])
 

@@ -1,0 +1,26 @@
+Update k8s/kind-config.yaml and plat_scripts/deploy.py to disable the default KinD CNI and install Calico before deploying the application.
+
+files:
+- k8s/kind-config.yaml
+- plat_scripts/deploy.py
+
+kind-config.yaml:
+add disableDefaultCNI: true to each node entry under networking or as a top-level networking field.
+keep the existing one control-plane and two worker node definitions unchanged.
+
+deploy.py:
+add a new step between cluster creation and image builds called "Install Calico CNI".
+run kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.3/manifests/calico.yaml.
+after applying, wait for the calico-node DaemonSet to be ready in namespace kube-system using kubectl rollout status daemonset/calico-node -n kube-system --timeout=120s.
+wait for the calico-kube-controllers Deployment to be ready using kubectl rollout status deployment/calico-kube-controllers -n kube-system --timeout=120s.
+update all step numbers to reflect the new step.
+
+imports / dependencies:
+Calico v3.27.3 manifest URL: https://raw.githubusercontent.com/projectcalico/calico/v3.27.3/manifests/calico.yaml.
+disableDefaultCNI: true must be set before cluster creation or nodes will never become Ready.
+kubectl context must be kind-svp.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
