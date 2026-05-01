@@ -36,6 +36,7 @@ STATEFULSETS = [
 ]
 
 CALICO_MANIFEST = "https://raw.githubusercontent.com/projectcalico/calico/v3.27.3/manifests/calico.yaml"
+NETWORK_POLICY_DIR = K8S / "network-policies"
 
 
 def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
@@ -93,16 +94,19 @@ def helm_release_exists() -> bool:
 
 
 def deploy_raw() -> None:
-    step("Step 5/9 — Apply namespace, ConfigMap, and Secret")
+    step("Step 5/10 — Apply namespace, ConfigMap, and Secret")
     run(["kubectl", "apply", "-f", str(K8S / "namespace.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "configmap.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "secret.yaml")])
 
-    step("Step 6/9 — Apply infrastructure (Postgres, Redis, Kafka)")
+    step("Step 6/10 — Apply network policies")
+    apply_dir(NETWORK_POLICY_DIR)
+
+    step("Step 7/10 — Apply infrastructure (Postgres, Redis, Kafka)")
     for d in INFRASTRUCTURE_DIRS:
         apply_dir(K8S / d)
 
-    step("Step 7/9 — Wait for infrastructure StatefulSets to be ready")
+    step("Step 8/10 — Wait for infrastructure StatefulSets to be ready")
     for sts in STATEFULSETS:
         run([
             "kubectl", "rollout", "status",
@@ -111,11 +115,11 @@ def deploy_raw() -> None:
             "--timeout=300s",
         ])
 
-    step("Step 8/9 — Apply application services")
+    step("Step 9/10 — Apply application services")
     for d in APP_DIRS:
         apply_dir(K8S / d)
 
-    step("Step 9/9 — Show pod status")
+    step("Step 10/10 — Show pod status")
     run(["kubectl", "get", "pods", "-n", NAMESPACE])
 
 
@@ -144,7 +148,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    total = 5 if args.helm else 9
+    total = 5 if args.helm else 10
 
     step(f"Step 1/{total} — Create KinD cluster")
     if cluster_exists():

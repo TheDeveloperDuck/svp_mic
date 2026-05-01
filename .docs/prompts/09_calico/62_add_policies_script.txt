@@ -1,0 +1,35 @@
+Add the Calico network policies to the deploy script and the Helm chart.
+
+files:
+- plat_scripts/deploy.py
+- k8s/helm/svp/templates/network-policies/default-deny.yaml
+- k8s/helm/svp/templates/network-policies/allow-dns.yaml
+- k8s/helm/svp/templates/network-policies/allow-customer-user-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-planning-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-expense-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-frontend-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-kafka.yaml
+- k8s/helm/svp/templates/network-policies/allow-istio-controlplane.yaml
+
+deploy.py:
+add a NETWORK_POLICY_DIR constant pointing to k8s/network-policies/ relative to PROJECT_ROOT.
+in deploy_raw(): add a new step after namespace/configmap/secret are applied and before infrastructure is applied.
+the step is named "Apply network policies" and calls apply_dir(NETWORK_POLICY_DIR).
+update all subsequent step numbers in deploy_raw() to account for the new step.
+in deploy_helm(): network policies are handled by the Helm chart so no changes needed there.
+
+helm templates:
+copy the content of each file from k8s/network-policies/ into the corresponding file under k8s/helm/svp/templates/network-policies/.
+replace the hardcoded namespace svp with {{ .Release.Namespace }} in every template.
+all other content stays identical to the source manifests.
+
+imports / dependencies:
+source network policy manifests are at k8s/network-policies/.
+all eight files must be copied into the helm templates directory.
+namespace references must use {{ .Release.Namespace }} not hardcoded svp.
+NETWORK_POLICY_DIR already resolvable via K8S / "network-policies".
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
