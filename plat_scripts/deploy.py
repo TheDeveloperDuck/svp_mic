@@ -64,35 +64,35 @@ def apply_dir(directory: Path) -> None:
 
 
 def main() -> None:
-    step("Step 1/7 — Create KinD cluster")
+    step("Step 1/8 — Create KinD cluster")
     if cluster_exists():
         print(f"Cluster '{CLUSTER_NAME}' already exists, skipping creation.")
     else:
-        run(["kind", "create", "cluster", "--name", CLUSTER_NAME])
+        run(["kind", "create", "cluster", "--name", CLUSTER_NAME, "--config", str(K8S / "kind-config.yaml")])
 
-    step("Step 2/7 — Build Docker images")
+    step("Step 2/8 — Build Docker images")
     for tag, dockerfile, context in IMAGES:
         run([
             "docker", "build",
             "-t", tag,
             "-f", str(PROJECT_ROOT / dockerfile),
-            str(PROJECT_ROOT / context),
+            str(PROJECT_ROOT),
         ])
 
-    step("Step 3/7 — Load images into KinD cluster")
+    step("Step 3/8 — Load images into KinD cluster")
     for tag, _, _ in IMAGES:
         run(["kind", "load", "docker-image", tag, "--name", CLUSTER_NAME])
 
-    step("Step 4/7 — Apply namespace, ConfigMap, and Secret")
+    step("Step 4/8 — Apply namespace, ConfigMap, and Secret")
     run(["kubectl", "apply", "-f", str(K8S / "namespace.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "configmap.yaml")])
     run(["kubectl", "apply", "-f", str(K8S / "secret.yaml")])
 
-    step("Step 5/7 — Apply infrastructure (Postgres, Redis, Kafka)")
+    step("Step 5/8 — Apply infrastructure (Postgres, Redis, Kafka)")
     for d in INFRASTRUCTURE_DIRS:
         apply_dir(K8S / d)
 
-    step("Step 6/7 — Wait for infrastructure StatefulSets to be ready")
+    step("Step 6/8 — Wait for infrastructure StatefulSets to be ready")
     for sts in STATEFULSETS:
         run([
             "kubectl", "rollout", "status",
@@ -101,11 +101,11 @@ def main() -> None:
             "--timeout=300s",
         ])
 
-    step("Step 7/7 — Apply application services")
+    step("Step 7/8 — Apply application services")
     for d in APP_DIRS:
         apply_dir(K8S / d)
 
-    print()
+    step("Step 8/8 — Show pod status")
     run(["kubectl", "get", "pods", "-n", NAMESPACE])
 
 

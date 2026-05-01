@@ -13,17 +13,6 @@ spec:
       labels:
         app: expense-service
     spec:
-      initContainers:
-        - name: migrate
-          image: svp/expense-service:latest
-          imagePullPolicy: IfNotPresent
-          command: ["alembic", "upgrade", "head"]
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: svp-secret
-                  key: DATABASE_URL_EXPENSE
       containers:
         - name: expense-service
           image: svp/expense-service:latest

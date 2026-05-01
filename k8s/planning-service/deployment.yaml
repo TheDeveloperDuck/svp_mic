@@ -13,17 +13,6 @@ spec:
       labels:
         app: planning-service
     spec:
-      initContainers:
-        - name: migrate
-          image: svp/planning-service:latest
-          imagePullPolicy: IfNotPresent
-          command: ["alembic", "upgrade", "head"]
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: svp-secret
-                  key: DATABASE_URL_PLANNING
       containers:
         - name: planning-service
           image: svp/planning-service:latest

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: zookeeper
-          image: confluentinc/cp-zookeeper:7.5.0
+          image: confluentinc/cp-zookeeper:7.6.0
           ports:
             - containerPort: 2181
           env:
@@ -36,14 +36,14 @@ spec:
               memory: 512Mi
           livenessProbe:
             exec:
-              command: ["bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+              command: ["bash", "-c", "wget -q -O- http://localhost:8080/commands/ruok | grep -q ruok"]
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             exec:
-              command: ["bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+              command: ["bash", "-c", "wget -q -O- http://localhost:8080/commands/ruok | grep -q ruok"]
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5

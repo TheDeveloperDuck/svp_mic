@@ -4,7 +4,7 @@ metadata:
   name: svp-config
   namespace: svp
 data:
-  KAFKA_BOOTSTRAP_SERVERS: "kafka.svp.svc.cluster.local:9092"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-0.kafka.svp.svc.cluster.local:9092"
   REDIS_URL: "redis://redis.svp.svc.cluster.local:6379"
   LOG_LEVEL: "INFO"
   POSTGRES_HOST_CUSTOMER_USER: "customer-user-db.svp.svc.cluster.local"
