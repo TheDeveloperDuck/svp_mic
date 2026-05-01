@@ -1,0 +1,22 @@
+Add Istio mTLS and authorisation policy manifests to the install_istio.py script.
+
+files:
+- plat_scripts/install_istio.py
+
+install_istio.py:
+add a new step 8 after sidecar verification.
+the step is named "Apply mTLS and authorisation policies".
+run kubectl apply -f pointing to k8s/istio/peer-authentication.yaml.
+run kubectl apply -f pointing to k8s/istio/authorization/.
+print kubectl get peerauthentication -n svp and kubectl get authorizationpolicy -n svp at the end of this step.
+update the step total from 7 to 8.
+PROJECT_ROOT is already resolved in the script, use it to build the paths.
+
+imports / dependencies:
+k8s/istio/ is at PROJECT_ROOT / "k8s" / "istio".
+Istio CRDs must be installed before applying these, which is guaranteed by step 2.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
