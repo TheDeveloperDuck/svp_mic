@@ -1,0 +1,109 @@
+# Ingress to kafka: from app services and zookeeper
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-ingress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: customer-user-service
+        - podSelector:
+            matchLabels:
+              app: planning-service
+        - podSelector:
+            matchLabels:
+              app: expense-service
+      ports:
+        - protocol: TCP
+          port: 9092
+    - from:
+        - podSelector:
+            matchLabels:
+              app: zookeeper
+      ports:
+        - protocol: TCP
+          port: 9092
+---
+# Ingress to zookeeper: from kafka and app services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-zookeeper-ingress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: zookeeper
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 2181
+    - from:
+        - podSelector:
+            matchLabels:
+              app: customer-user-service
+        - podSelector:
+            matchLabels:
+              app: planning-service
+        - podSelector:
+            matchLabels:
+              app: expense-service
+      ports:
+        - protocol: TCP
+          port: 2181
+---
+# Egress from kafka to zookeeper
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-egress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: zookeeper
+      ports:
+        - protocol: TCP
+          port: 2181
+---
+# Egress from zookeeper to kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-zookeeper-egress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: zookeeper
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092

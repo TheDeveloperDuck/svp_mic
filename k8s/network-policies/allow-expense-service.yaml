@@ -1,0 +1,75 @@
+# Ingress to expense-db: only from expense-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-expense-db-ingress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: expense-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: expense-service
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Ingress to expense-service: from frontend-service and istio ingress gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-expense-service-ingress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: expense-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend-service
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-ingress
+          podSelector:
+            matchLabels:
+              istio: ingressgateway
+      ports:
+        - protocol: TCP
+          port: 8003
+---
+# Egress from expense-service to its dependencies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-expense-service-egress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: expense-service
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: expense-db
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092

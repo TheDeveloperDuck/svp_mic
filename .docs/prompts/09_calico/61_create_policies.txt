@@ -1,0 +1,68 @@
+Create Calico NetworkPolicy manifests for the svp namespace implementing zero trust L3/L4 policy.
+
+files:
+- k8s/network-policies/default-deny.yaml
+- k8s/network-policies/allow-dns.yaml
+- k8s/network-policies/allow-customer-user-service.yaml
+- k8s/network-policies/allow-planning-service.yaml
+- k8s/network-policies/allow-expense-service.yaml
+- k8s/network-policies/allow-frontend-service.yaml
+- k8s/network-policies/allow-kafka.yaml
+- k8s/network-policies/allow-istio-controlplane.yaml
+
+default-deny.yaml:
+NetworkPolicy kind, namespace svp.
+deny all ingress and egress for all pods in the namespace by default.
+empty podSelector to match all pods.
+empty ingress and egress arrays.
+
+allow-dns.yaml:
+NetworkPolicy for all pods in svp namespace.
+allow egress to kube-dns on UDP and TCP port 53.
+namespaceSelector matching kube-system namespace.
+
+allow-customer-user-service.yaml:
+allow ingress to customer-user-db-0 only from customer-user-service pods.
+allow ingress to customer-user-service only from frontend-service pods and the istio ingress gateway namespace.
+allow egress from customer-user-service to customer-user-db on port 5432.
+allow egress from customer-user-service to redis on port 6379.
+allow egress from customer-user-service to kafka on port 9092.
+
+allow-planning-service.yaml:
+allow ingress to planning-db-0 only from planning-service pods.
+allow ingress to planning-service only from frontend-service pods and the istio ingress gateway namespace.
+allow egress from planning-service to planning-db on port 5432.
+allow egress from planning-service to kafka on port 9092.
+
+allow-expense-service.yaml:
+allow ingress to expense-db-0 only from expense-service pods.
+allow ingress to expense-service only from frontend-service pods and the istio ingress gateway namespace.
+allow egress from expense-service to expense-db on port 5432.
+allow egress from expense-service to kafka on port 9092.
+
+allow-frontend-service.yaml:
+allow ingress to frontend-service from the istio ingress gateway namespace only.
+allow egress from frontend-service to customer-user-service on port 8001.
+allow egress from frontend-service to planning-service on port 8002.
+allow egress from frontend-service to expense-service on port 8003.
+
+allow-kafka.yaml:
+allow ingress to kafka and zookeeper from customer-user-service, planning-service, and expense-service pods.
+allow egress from kafka to zookeeper on port 2181.
+allow egress from zookeeper to kafka on port 9092.
+
+allow-istio-controlplane.yaml:
+allow egress from all pods in svp to istiod in the istio-system namespace on port 15012.
+allow ingress to all pods in svp from the istio-system namespace for health checks on port 15020 and 15021.
+allow egress to the istio-system namespace on port 15010 and 15014 for xDS and telemetry.
+
+imports / dependencies:
+istio ingress gateway runs in the istio-ingress namespace with label istio: ingressgateway.
+istiod runs in istio-system namespace.
+all app pods are in namespace svp.
+calico must be installed before applying these policies.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.

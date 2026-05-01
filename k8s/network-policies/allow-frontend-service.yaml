@@ -1,0 +1,55 @@
+# Ingress to frontend-service: only from istio ingress gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-service-ingress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-ingress
+          podSelector:
+            matchLabels:
+              istio: ingressgateway
+---
+# Egress from frontend-service to the three backend services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-service-egress
+  namespace: svp
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend-service
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: customer-user-service
+      ports:
+        - protocol: TCP
+          port: 8001
+    - to:
+        - podSelector:
+            matchLabels:
+              app: planning-service
+      ports:
+        - protocol: TCP
+          port: 8002
+    - to:
+        - podSelector:
+            matchLabels:
+              app: expense-service
+      ports:
+        - protocol: TCP
+          port: 8003
