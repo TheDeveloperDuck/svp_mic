@@ -1,0 +1,33 @@
+namespace: svp
+
+image:
+  pullPolicy: IfNotPresent
+  tag: latest
+  repository: svp
+
+images:
+  customerUserService: customer-user-service
+  planningService: planning-service
+  expenseService: expense-service
+  frontendService: frontend-service
+
+postgres:
+  user: svp_user
+  password: svp_pass
+  dbCustomerUser: customer_user_db
+  dbPlanning: planning_db
+  dbExpense: expense_db
+  storageSize: 1Gi
+
+redis:
+  storageSize: 1Gi
+
+kafka:
+  storageSize: 2Gi
+  advertised: kafka-0.kafka.svp.svc.cluster.local:9092
+
+zookeeper:
+  connect: zookeeper.svp.svc.cluster.local:2181
+
+googleMapsApiKey: placeholder
+secretKey: placeholder

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: svp
+description: Sales Visit Planner
+version: 0.1.0

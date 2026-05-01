@@ -1,0 +1,62 @@
+Create a Helm chart that wraps all existing Kubernetes manifests under k8s/helm/svp/.
+
+files:
+- k8s/helm/svp/Chart.yaml
+- k8s/helm/svp/values.yaml
+- k8s/helm/svp/templates/namespace.yaml
+- k8s/helm/svp/templates/configmap.yaml
+- k8s/helm/svp/templates/secret.yaml
+- k8s/helm/svp/templates/postgres/customer-user-db.yaml
+- k8s/helm/svp/templates/postgres/planning-db.yaml
+- k8s/helm/svp/templates/postgres/expense-db.yaml
+- k8s/helm/svp/templates/redis/redis.yaml
+- k8s/helm/svp/templates/kafka/zookeeper.yaml
+- k8s/helm/svp/templates/kafka/kafka.yaml
+- k8s/helm/svp/templates/customer-user-service/deployment.yaml
+- k8s/helm/svp/templates/customer-user-service/service.yaml
+- k8s/helm/svp/templates/planning-service/deployment.yaml
+- k8s/helm/svp/templates/planning-service/service.yaml
+- k8s/helm/svp/templates/expense-service/deployment.yaml
+- k8s/helm/svp/templates/expense-service/service.yaml
+- k8s/helm/svp/templates/frontend-service/deployment.yaml
+- k8s/helm/svp/templates/frontend-service/service.yaml
+
+Chart.yaml:
+apiVersion v2, name svp, version 0.1.0, description Sales Visit Planner.
+
+values.yaml:
+define all configurable values with sensible defaults matching the existing manifests.
+namespace: svp.
+image.pullPolicy: IfNotPresent.
+image.tag: latest.
+image.repository prefix: svp.
+postgres.user: svp_user.
+postgres.password: svp_pass.
+postgres.storageSize: 1Gi.
+redis.storageSize: 1Gi.
+kafka.storageSize: 2Gi.
+kafka.advertised: kafka-0.kafka.svp.svc.cluster.local:9092.
+zookeeper.connect: zookeeper.svp.svc.cluster.local:2181.
+googleMapsApiKey: placeholder.
+secretKey: placeholder.
+each app service gets its own image name under images.customerUserService, images.planningService, images.expenseService, images.frontendService.
+
+templates:
+convert every file from k8s/ into a Helm template using {{ .Values.* }} references.
+use {{ .Release.Namespace }} instead of hardcoded svp namespace where appropriate.
+secret values must be base64 encoded in the template using b64enc.
+all resource names should use {{ .Release.Name }} prefix where appropriate.
+keep the same structure, probes, resources, and env vars as the existing manifests.
+enableServiceLinks: false must remain on the kafka pod spec.
+clusterIP: None must remain on the kafka service.
+
+imports / dependencies:
+source manifests are in k8s/.
+all env var names, secret keys, and configmap keys must match the existing manifests exactly.
+DATABASE_URL_PLANNING and PLANNING_DATABASE_URL both needed in planning-service deployment.
+DATABASE_URL_EXPENSE and EXPENSE_DATABASE_URL both needed in expense-service deployment.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
