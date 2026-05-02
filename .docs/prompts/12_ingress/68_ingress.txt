@@ -1,0 +1,49 @@
+Create Istio ingress gateway manifests to replace nginx as the external entry point for the svp platform.
+
+files:
+- k8s/istio/gateway.yaml
+- k8s/istio/virtual-services.yaml
+
+gateway.yaml:
+Gateway resource named svp-gateway, namespace svp.
+selector matching istio: ingressgateway.
+one server on port 80, protocol HTTP, hosts: ["*"].
+
+virtual-services.yaml:
+four VirtualService resources, one per app service, all in namespace svp.
+all four bind to the svp-gateway gateway.
+
+VirtualService named customer-user-service-vs:
+hosts: ["*"].
+gateway: svp-gateway.
+http route matching prefix /api/customers to service customer-user-service port 8001.
+http route matching prefix /api/users to service customer-user-service port 8001.
+
+VirtualService named planning-service-vs:
+hosts: ["*"].
+gateway: svp-gateway.
+http route matching prefix /api/plans to service planning-service port 8002.
+
+VirtualService named expense-service-vs:
+hosts: ["*"].
+gateway: svp-gateway.
+http route matching prefix /api/expenses to service expense-service port 8003.
+
+VirtualService named frontend-service-vs:
+hosts: ["*"].
+gateway: svp-gateway.
+http route matching prefix / to service frontend-service port 8000.
+this is the catch-all route and must be last.
+
+imports / dependencies:
+apiVersion: networking.istio.io/v1beta1 for both Gateway and VirtualService.
+istio-ingressgateway runs in istio-system namespace and is selected by label istio: ingressgateway.
+all backend services are in the svp namespace.
+path prefix matching must use match.uri.prefix not exact.
+more specific routes must come before the catch-all / route.
+Istio must be installed before applying these.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.

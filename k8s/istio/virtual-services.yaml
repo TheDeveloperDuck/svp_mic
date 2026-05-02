@@ -1,0 +1,87 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: customer-user-service-vs
+  namespace: svp
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - svp-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/customers
+      route:
+        - destination:
+            host: customer-user-service
+            port:
+              number: 8001
+    - match:
+        - uri:
+            prefix: /api/users
+      route:
+        - destination:
+            host: customer-user-service
+            port:
+              number: 8001
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: planning-service-vs
+  namespace: svp
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - svp-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/plans
+      route:
+        - destination:
+            host: planning-service
+            port:
+              number: 8002
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: expense-service-vs
+  namespace: svp
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - svp-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/expenses
+      route:
+        - destination:
+            host: expense-service
+            port:
+              number: 8003
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: frontend-service-vs
+  namespace: svp
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - svp-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: frontend-service
+            port:
+              number: 8000
