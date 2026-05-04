@@ -23,7 +23,7 @@ def step(msg: str) -> None:
 
 
 def check_istioctl() -> None:
-    step("Step 1/8 — Check istioctl is available")
+    step("Step 1/9 — Check istioctl is available")
     result = subprocess.run(
         ["istioctl", "version"],
         capture_output=True,
@@ -40,12 +40,12 @@ def check_istioctl() -> None:
 
 
 def install_istio() -> None:
-    step("Step 2/8 — Install Istio (demo profile)")
+    step("Step 2/9 — Install Istio (demo profile)")
     run(["istioctl", "install", "--set", "profile=demo", "-y"])
 
 
 def verify_istio_system() -> None:
-    step("Step 3/8 — Verify istiod is ready in istio-system")
+    step("Step 3/9 — Verify istiod is ready in istio-system")
     run([
         "kubectl", "rollout", "status",
         "deployment/istiod",
@@ -55,7 +55,7 @@ def verify_istio_system() -> None:
 
 
 def label_namespace() -> None:
-    step("Step 4/8 — Enable sidecar injection on namespace")
+    step("Step 4/9 — Enable sidecar injection on namespace")
     run([
         "kubectl", "label", "namespace", NAMESPACE,
         "istio-injection=enabled",
@@ -64,12 +64,12 @@ def label_namespace() -> None:
 
 
 def restart_deployments() -> None:
-    step("Step 5/8 — Restart deployments to inject sidecars into existing pods")
+    step("Step 5/9 — Restart deployments to inject sidecars into existing pods")
     run(["kubectl", "rollout", "restart", "deployment", "-n", NAMESPACE])
 
 
 def wait_for_deployments() -> None:
-    step("Step 6/8 — Wait for all deployments to be ready (timeout 300s each)")
+    step("Step 6/9 — Wait for all deployments to be ready (timeout 300s each)")
     result = subprocess.run(
         ["kubectl", "get", "deployments", "-n", NAMESPACE, "-o", "name"],
         capture_output=True,
@@ -94,7 +94,7 @@ def wait_for_deployments() -> None:
 
 
 def verify_sidecars() -> None:
-    step("Step 7/8 — Verify sidecar injection (all app pods must show 2/2 READY)")
+    step("Step 7/9 — Verify sidecar injection (all app pods must show 2/2 READY)")
     result = subprocess.run(
         ["kubectl", "get", "pods", "-n", NAMESPACE],
         capture_output=True,
@@ -134,7 +134,7 @@ def verify_sidecars() -> None:
 
 
 def apply_istio_policies() -> None:
-    step("Step 8/8 — Apply mTLS and authorisation policies")
+    step("Step 8/9 — Apply mTLS and authorisation policies")
     istio_dir = PROJECT_ROOT / "k8s" / "istio"
     run(["kubectl", "apply", "-f", str(istio_dir / "peer-authentication.yaml")])
     run(["kubectl", "apply", "-f", str(istio_dir / "authorization")])
@@ -142,6 +142,17 @@ def apply_istio_policies() -> None:
     run(["kubectl", "get", "peerauthentication", "-n", NAMESPACE])
     run(["kubectl", "get", "authorizationpolicy", "-n", NAMESPACE])
     run(["kubectl", "get", "telemetry", "-n", NAMESPACE])
+
+
+def apply_istio_networking() -> None:
+    step("Step 9/9 — Apply ingress gateway, virtual services, and destination rules")
+    istio_dir = PROJECT_ROOT / "k8s" / "istio"
+    run(["kubectl", "apply", "-f", str(istio_dir / "gateway.yaml")])
+    run(["kubectl", "apply", "-f", str(istio_dir / "virtual-services.yaml")])
+    run(["kubectl", "apply", "-f", str(istio_dir / "destination-rules.yaml")])
+    run(["kubectl", "get", "gateway", "-n", NAMESPACE])
+    run(["kubectl", "get", "virtualservice", "-n", NAMESPACE])
+    run(["kubectl", "get", "destinationrule", "-n", NAMESPACE])
 
 
 def main() -> None:
@@ -153,7 +164,8 @@ def main() -> None:
     wait_for_deployments()
     verify_sidecars()
     apply_istio_policies()
-    print("\nIstio installation and sidecar injection complete.")
+    apply_istio_networking()
+    print("\nIstio installation, sidecar injection, and networking setup complete.")
 
 
 if __name__ == "__main__":

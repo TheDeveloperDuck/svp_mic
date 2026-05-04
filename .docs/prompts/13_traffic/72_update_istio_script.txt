@@ -1,0 +1,34 @@
+Add the ingress gateway, virtual services, and destination rules to install_istio.py so they apply automatically on every fresh deploy.
+
+files:
+- plat_scripts/install_istio.py
+
+install_istio.py:
+read the current file before editing.
+add a new step 9 after the existing step 8 apply_istio_policies().
+name the step "Apply ingress gateway, virtual services, and destination rules".
+update the step total from 8 to 9 in all step labels.
+the new function is named apply_istio_networking().
+it applies the following files in order:
+  kubectl apply -f k8s/istio/gateway.yaml
+  kubectl apply -f k8s/istio/virtual-services.yaml
+  kubectl apply -f k8s/istio/destination-rules.yaml
+after applying, print the following verification commands:
+  kubectl get gateway -n svp
+  kubectl get virtualservice -n svp
+  kubectl get destinationrule -n svp
+call apply_istio_networking() from main() after apply_istio_policies().
+update the completion message at the end of main() to reflect the full setup is complete.
+PROJECT_ROOT is already resolved in the script, use it to build all paths.
+
+imports / dependencies:
+k8s/istio/gateway.yaml at PROJECT_ROOT / "k8s" / "istio" / "gateway.yaml".
+k8s/istio/virtual-services.yaml at PROJECT_ROOT / "k8s" / "istio" / "virtual-services.yaml".
+k8s/istio/destination-rules.yaml at PROJECT_ROOT / "k8s" / "istio" / "destination-rules.yaml".
+Istio CRDs must be installed before applying these, which is guaranteed by step 2.
+gateway and virtual services must be applied before destination rules.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
