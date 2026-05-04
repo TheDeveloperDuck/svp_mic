@@ -1,0 +1,28 @@
+Fix the Calico network policies to allow ingress from the istio-system namespace to all app services in the svp namespace.
+
+files:
+- k8s/network-policies/allow-customer-user-service.yaml
+- k8s/network-policies/allow-planning-service.yaml
+- k8s/network-policies/allow-expense-service.yaml
+- k8s/network-policies/allow-frontend-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-customer-user-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-planning-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-expense-service.yaml
+- k8s/helm/svp/templates/network-policies/allow-frontend-service.yaml
+
+all four allow-*-service-ingress network policies:
+in the ingress rule that references the istio ingress gateway, change the namespaceSelector to match namespace istio-system using kubernetes.io/metadata.name: istio-system.
+remove any podSelector label filter on that ingress rule so all pods from istio-system are allowed, not just those with a specific label.
+the ingress rule allowing traffic from svp namespace pods stays unchanged.
+apply the same fix to both the raw manifests in k8s/network-policies/ and the helm templates in k8s/helm/svp/templates/network-policies/.
+in helm templates replace hardcoded namespace svp with {{ .Release.Namespace }}.
+
+imports / dependencies:
+istio-ingressgateway pod runs in istio-system namespace, not istio-ingress.
+kubernetes.io/metadata.name label is automatically set on all namespaces.
+Calico enforces these policies at L3 so the fix must be at the namespace selector level.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.

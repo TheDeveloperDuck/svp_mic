@@ -12,6 +12,8 @@ spec:
     - match:
         - uri:
             prefix: /api/customers
+      rewrite:
+        uri: /customers
       route:
         - destination:
             host: customer-user-service
@@ -20,6 +22,8 @@ spec:
     - match:
         - uri:
             prefix: /api/users
+      rewrite:
+        uri: /users
       route:
         - destination:
             host: customer-user-service
@@ -40,6 +44,8 @@ spec:
     - match:
         - uri:
             prefix: /api/plans
+      rewrite:
+        uri: /plans
       route:
         - destination:
             host: planning-service
@@ -60,6 +66,8 @@ spec:
     - match:
         - uri:
             prefix: /api/expenses
+      rewrite:
+        uri: /expenses
       route:
         - destination:
             host: expense-service
