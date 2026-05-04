@@ -1,0 +1,38 @@
+Create Istio DestinationRule manifests for load balancing across all four app services.
+
+files:
+- k8s/istio/destination-rules.yaml
+
+destination-rules.yaml:
+four DestinationRule resources, one per app service, all in namespace svp.
+apiVersion: networking.istio.io/v1beta1 for all resources.
+
+DestinationRule named customer-user-service-dr:
+host: customer-user-service.
+trafficPolicy with loadBalancer set to ROUND_ROBIN.
+connectionPool with http maxRequestsPerConnection: 10 and tcp connectTimeout: 30s.
+outlierDetection with consecutiveErrors: 5, interval: 30s, baseEjectionTime: 30s.
+
+DestinationRule named planning-service-dr:
+host: planning-service.
+same trafficPolicy, connectionPool, and outlierDetection as above.
+
+DestinationRule named expense-service-dr:
+host: expense-service.
+same trafficPolicy, connectionPool, and outlierDetection as above.
+
+DestinationRule named frontend-service-dr:
+host: frontend-service.
+same trafficPolicy, connectionPool, and outlierDetection as above.
+
+imports / dependencies:
+apiVersion: networking.istio.io/v1beta1.
+all services are in the svp namespace.
+outlierDetection provides passive circuit breaking by ejecting unhealthy hosts.
+Istio and sidecars must be injected before these take effect.
+apply after install_istio.py has run.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
