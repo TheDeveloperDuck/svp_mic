@@ -1,0 +1,8 @@
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: svp-tracing
+  namespace: svp
+spec:
+  tracing:
+    - randomSamplingPercentage: 100.0

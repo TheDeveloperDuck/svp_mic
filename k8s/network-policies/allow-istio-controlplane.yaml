@@ -20,6 +20,8 @@ spec:
           port: 15010  # istiod: xDS plaintext (debug only)
         - protocol: TCP
           port: 15014  # istiod: control-plane monitoring / telemetry
+        - protocol: TCP
+          port: 9411   # Zipkin collector: sidecar trace reporting
 ---
 # Ingress from istio-system for sidecar health checks
 apiVersion: networking.k8s.io/v1

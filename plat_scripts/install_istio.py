@@ -138,8 +138,10 @@ def apply_istio_policies() -> None:
     istio_dir = PROJECT_ROOT / "k8s" / "istio"
     run(["kubectl", "apply", "-f", str(istio_dir / "peer-authentication.yaml")])
     run(["kubectl", "apply", "-f", str(istio_dir / "authorization")])
+    run(["kubectl", "apply", "-f", str(istio_dir / "telemetry.yaml")])
     run(["kubectl", "get", "peerauthentication", "-n", NAMESPACE])
     run(["kubectl", "get", "authorizationpolicy", "-n", NAMESPACE])
+    run(["kubectl", "get", "telemetry", "-n", NAMESPACE])
 
 
 def main() -> None:

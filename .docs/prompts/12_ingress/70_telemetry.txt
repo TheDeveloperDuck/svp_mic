@@ -1,0 +1,28 @@
+Create a Telemetry manifest for 100% trace sampling and add it to the install_istio.py script.
+
+files:
+- k8s/istio/telemetry.yaml
+- plat_scripts/install_istio.py
+
+telemetry.yaml:
+apiVersion: telemetry.istio.io/v1alpha1, kind: Telemetry.
+name: svp-tracing, namespace: svp.
+spec.tracing with randomSamplingPercentage: 100.0.
+no provider override needed, Istio will use the default Zipkin provider configured at install time.
+
+install_istio.py:
+read the current file before editing.
+in the apply_istio_policies() step 8, after applying the authorization policies, add kubectl apply -f pointing to k8s/istio/telemetry.yaml.
+print kubectl get telemetry -n svp at the end of that step to confirm it was applied.
+no new step needed, add it to the existing step 8.
+PROJECT_ROOT is already resolved in the script, use it to build the path.
+
+imports / dependencies:
+Telemetry is an Istio CRD, requires Istio to be installed first.
+telemetry.yaml lives at PROJECT_ROOT / "k8s" / "istio" / "telemetry.yaml".
+the Telemetry CRD is installed as part of istioctl install --set profile=demo so no additional setup needed.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
