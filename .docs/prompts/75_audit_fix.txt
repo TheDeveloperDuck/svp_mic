@@ -1,0 +1,91 @@
+Audit the k8s/ directory for structural issues and propose improvements based on KISS and separation of concerns. Do not make any changes, only report findings.
+
+files to audit:
+read and analyse the entire k8s/ directory structure and all files within it.
+
+audit criteria:
+
+KISS - identify files that are overly complex, duplicated, or could be simplified:
+- are there raw manifest files that are now fully superseded by the Helm chart and serve no purpose in the current workflow?
+- are there files that contain only one or two resources that could be logically merged with related files?
+- are there any empty directories or placeholder files?
+- is the fault-injection-gateway.yaml and fault-injection-expense-gateway.yaml duplication a concern given fault-injection.yaml also exists?
+
+separation of concerns - identify structural issues:
+- are Istio networking resources (gateway, virtual services, destination rules) mixed with Istio security resources (peer authentication, authorization policies) in a flat directory?
+- should the k8s/istio/ directory be subdivided into security/ and networking/ or traffic/?
+- are the raw k8s/ manifests (namespace.yaml, configmap.yaml, secret.yaml, postgres/, redis/, kafka/, etc.) still needed now that the Helm chart is the primary deployment method?
+- is the split between k8s/network-policies/ and k8s/helm/svp/templates/network-policies/ clearly justified or confusing?
+- is the split between k8s/istio/ and k8s/helm/svp/templates/istio/ (which was deleted) still clear?
+
+output format:
+list findings grouped by category: KISS issues, separation of concerns issues.
+for each finding state the file or directory, what the issue is, and a concrete recommendation.
+end with a priority order for which changes to make first if the user decides to proceed.
+do not modify any files.
+
+======
+
+Clean up the k8s/ directory structure based on the following audit findings. Apply all changes.
+
+changes to make:
+
+1. Delete all raw manifest files and directories that are superseded by the Helm chart:
+delete k8s/customer-user-service/
+delete k8s/planning-service/
+delete k8s/expense-service/
+delete k8s/frontend-service/
+delete k8s/postgres/
+delete k8s/redis/
+delete k8s/kafka/
+delete k8s/configmap.yaml
+delete k8s/namespace.yaml
+delete k8s/secret.yaml
+these are fully superseded by k8s/helm/svp/templates/ and have diverged from it.
+
+2. Delete k8s/network-policies/ entirely:
+the Helm chart at k8s/helm/svp/templates/network-policies/ is authoritative for all NetworkPolicy resources.
+the raw copies are content-identical mirrors with hardcoded namespaces that create orphaned-resource risk on helm uninstall.
+
+3. Move fault injection and rate limit files into a new k8s/istio/testing/ subdirectory:
+move k8s/istio/fault-injection.yaml to k8s/istio/testing/fault-injection.yaml.
+move k8s/istio/fault-injection-gateway.yaml to k8s/istio/testing/fault-injection-gateway.yaml.
+move k8s/istio/fault-injection-expense-gateway.yaml to k8s/istio/testing/fault-injection-expense-gateway.yaml.
+move k8s/istio/rate-limit.yaml to k8s/istio/testing/rate-limit.yaml.
+add a comment at the top of fault-injection-gateway.yaml and fault-injection-expense-gateway.yaml stating:
+  # TESTING ONLY: overwrites production VirtualService by name. Restore with: kubectl apply -f k8s/istio/virtual-services.yaml
+
+4. Rename k8s/istio/authorization/ to k8s/istio/security/ and move peer-authentication.yaml into it:
+rename k8s/istio/authorization/ to k8s/istio/security/.
+move k8s/istio/peer-authentication.yaml into k8s/istio/security/peer-authentication.yaml.
+the five AuthorizationPolicy files stay in their new location under security/.
+
+5. Move k8s/kind-config.yaml to the project root:
+move k8s/kind-config.yaml to kind-config.yaml at the project root.
+this is cluster bootstrap config, not an in-cluster resource.
+
+6. Update plat_scripts/deploy.py to reflect the structural changes:
+update the kind cluster creation command to reference kind-config.yaml at the project root instead of k8s/kind-config.yaml.
+remove NETWORK_POLICY_DIR constant and the deploy_raw() step that applies network policies since k8s/network-policies/ no longer exists.
+remove the entire deploy_raw() function since raw manifest mode is superseded by Helm.
+remove the --helm flag and argparse since Helm is now the only deployment method.
+update step numbers and totals accordingly.
+remove the INFRASTRUCTURE_DIRS, APP_DIRS, STATEFULSETS constants that were only used by deploy_raw().
+
+7. Update plat_scripts/install_istio.py to reflect the structural changes:
+update the path for peer-authentication.yaml from k8s/istio/peer-authentication.yaml to k8s/istio/security/peer-authentication.yaml.
+update the path for the authorization directory from k8s/istio/authorization to k8s/istio/security.
+
+8. Rename allow-redis-ingress.yaml to allow-redis.yaml in the Helm templates for consistency with allow-kafka.yaml:
+rename k8s/helm/svp/templates/network-policies/allow-redis-ingress.yaml to k8s/helm/svp/templates/network-policies/allow-redis.yaml.
+
+imports / dependencies:
+deploy.py references K8S / "kind-config.yaml" — change to PROJECT_ROOT / "kind-config.yaml".
+install_istio.py references istio_dir / "peer-authentication.yaml" and istio_dir / "authorization" — update both.
+do not modify any Helm chart templates other than the rename in step 8.
+do not modify any files in k8s/istio/ other than the moves and renames specified.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.
