@@ -1,0 +1,248 @@
+Create the test directory structure and all unit tests for the functional test suite.
+
+context:
+the project root is the current directory.
+all tests target a KinD cluster with Calico CNI and Istio installed.
+unit tests in this batch require no live cluster — they only read files from disk.
+base URL for all HTTP tests in later batches is http://localhost:8080 (Istio ingressgateway port-forward).
+the existing tests/ directory and its contents must not be touched.
+
+directory structure to create:
+tests/functional/__init__.py (empty)
+tests/functional/conftest.py
+tests/functional/unit/__init__.py (empty)
+tests/functional/unit/test_tracing_unit.py
+tests/functional/unit/test_network_policy_yaml.py
+tests/functional/unit/test_istio_manifest_yaml.py
+tests/functional/unit/test_helm_templates.py
+tests/stress/__init__.py (empty)
+tests/stress/conftest.py (stub only, content added in later batch)
+tests/stress/concurrent/__init__.py (empty)
+tests/stress/resilience/__init__.py (empty)
+
+tests/functional/conftest.py:
+import pytest and httpx.
+define a pytest fixture named client, function scope.
+client is an httpx.AsyncClient with base_url="http://localhost:8080" and timeout=30.0.
+use anyio as the async backend.
+define a pytest fixture named unique_suffix, function scope.
+unique_suffix returns an 8-character random hex string using secrets.token_hex(4).
+add pytest_configure to register the marker "stress" with description "stress tests, run separately from functional suite".
+
+tests/functional/unit/test_tracing_unit.py:
+read shared/tracing.py before writing any tests.
+import extract_tracing_headers and build_tracing_headers from shared.tracing.
+create a fake Request helper using a simple class or dataclass with a headers dict.
+the seven B3 headers are: x-request-id, x-b3-traceid, x-b3-spanid, x-b3-parentspanid, x-b3-sampled, x-b3-flags, x-forwarded-for.
+
+test_extract_returns_only_present_headers:
+build a request with only x-b3-traceid and x-request-id set.
+assert the result contains exactly those two keys.
+
+test_extract_skips_absent_headers:
+build a request with only x-b3-traceid set.
+assert x-b3-spanid is not in the result.
+
+test_extract_empty_when_no_tracing_headers:
+build a request with no tracing headers.
+assert result is an empty dict.
+
+one test per header (7 tests): test_extract_x_request_id_alone through test_extract_x_forwarded_for_alone.
+each builds a request with only that one header and asserts the result contains exactly that key with the correct value.
+
+test_extract_all_seven_headers:
+build a request with all seven headers set.
+assert all seven keys are present in the result.
+
+test_build_returns_same_as_extract:
+build a request with three headers set.
+assert build_tracing_headers returns the same dict as extract_tracing_headers for the same request.
+
+test_build_empty_when_no_headers:
+assert build_tracing_headers returns empty dict for a request with no tracing headers.
+
+test_build_returns_only_present:
+build a request with two of the seven headers.
+assert result has exactly two keys.
+
+test_neither_raises_with_no_headers:
+call both functions on a request with an empty headers dict.
+assert neither raises.
+
+tests/functional/unit/test_network_policy_yaml.py:
+read all files in k8s/helm/svp/templates/network-policies/ before writing tests.
+use pathlib.Path to resolve file paths relative to the project root.
+use the pyyaml library (import yaml) to parse all files.
+the network policy files are in k8s/helm/svp/templates/network-policies/.
+file names: default-deny.yaml, allow-dns.yaml, allow-customer-user-service.yaml,
+allow-planning-service.yaml, allow-expense-service.yaml, allow-frontend-service.yaml,
+allow-kafka.yaml, allow-redis.yaml, allow-istio-controlplane.yaml.
+
+do not hardcode yaml content in tests — load the file and inspect the parsed structure.
+
+default-deny.yaml tests (5 tests):
+test_default_deny_parses: assert yaml.safe_load does not raise.
+test_default_deny_policy_types: assert both Ingress and Egress are in spec.policyTypes.
+test_default_deny_empty_pod_selector: assert spec.podSelector == {} or spec.podSelector.matchLabels is absent.
+test_default_deny_no_ingress_rules: assert spec does not contain ingress key or ingress is empty/null.
+test_default_deny_no_egress_rules: assert spec does not contain egress key or egress is empty/null.
+
+allow-dns.yaml tests (4 tests):
+test_allow_dns_parses: parses without error.
+test_allow_dns_egress_port_53_udp: at least one egress port entry has port 53 and protocol UDP.
+test_allow_dns_egress_port_53_tcp: at least one egress port entry has port 53 and protocol TCP.
+test_allow_dns_namespace_selector_kube_system: at least one egress to entry has namespaceSelector matching kubernetes.io/metadata.name: kube-system.
+
+allow-customer-user-service.yaml tests (9 tests):
+test_parses, test_ingress_has_two_from_entries, test_ingress_from_svp_namespace,
+test_ingress_from_istio_system, test_istio_system_from_has_no_pod_selector,
+test_no_istio_ingress_namespace_reference (assert "istio-ingress" does not appear anywhere in the raw file text),
+test_egress_port_5432, test_egress_port_6379, test_egress_port_9092.
+
+allow-planning-service.yaml tests (8 tests):
+test_parses, test_ingress_has_two_from_entries, test_ingress_from_svp_namespace,
+test_ingress_from_istio_system, test_istio_system_from_has_no_pod_selector,
+test_no_istio_ingress_namespace_reference,
+test_egress_port_5432, test_egress_port_9092.
+
+allow-expense-service.yaml tests (8 tests):
+identical structure to planning-service tests.
+
+allow-frontend-service.yaml tests (7 tests):
+test_parses, test_ingress_has_one_from_entry, test_ingress_from_istio_system,
+test_istio_system_from_has_no_pod_selector,
+test_egress_port_8001, test_egress_port_8002, test_egress_port_8003.
+
+allow-kafka.yaml tests (6 tests):
+test_parses,
+test_ingress_allows_customer_user_service (podSelector matchLabels app: customer-user-service present in ingress from),
+test_ingress_allows_planning_service,
+test_ingress_allows_expense_service,
+test_egress_to_zookeeper_port_2181,
+test_egress_to_kafka_port_9092 (zookeeper needs to reach kafka — check egress in the same file or a zookeeper entry).
+
+allow-redis.yaml tests (2 tests):
+test_parses,
+test_ingress_allows_only_customer_user_service (only one from entry, matching app: customer-user-service).
+
+allow-istio-controlplane.yaml tests (6 tests):
+test_parses,
+test_egress_port_15012, test_egress_port_15010, test_egress_port_15014,
+test_ingress_from_istio_system_port_15020,
+test_ingress_from_istio_system_port_15021.
+
+tests/functional/unit/test_istio_manifest_yaml.py:
+read all files in k8s/istio/security/ and k8s/istio/ before writing tests.
+use pathlib to build all paths.
+the security directory is k8s/istio/security/.
+files to test: security/peer-authentication.yaml, security/allow-customer-user-service.yaml,
+security/allow-expense-service.yaml, security/allow-frontend-service.yaml,
+security/allow-ingress-gateway.yaml, security/allow-planning-service.yaml,
+telemetry.yaml, destination-rules.yaml, gateway.yaml, virtual-services.yaml.
+virtual-services.yaml contains multiple documents — use yaml.safe_load_all and collect into a list.
+destination-rules.yaml contains multiple documents — use yaml.safe_load_all and collect into a list.
+
+peer-authentication.yaml tests (4 tests):
+test_parses, test_mtls_mode_strict (spec.mtls.mode == STRICT),
+test_no_workload_selector (spec does not contain workloadSelector key),
+test_namespace_svp (metadata.namespace == svp).
+
+for each of the five AuthorizationPolicy files in security/ (25 tests total):
+allow-customer-user-service: test_parses, test_action_allow, test_exactly_two_source_principals,
+test_svp_default_principal_present (principal contains cluster.local/ns/svp/sa/default),
+test_ingressgateway_principal_present (principal contains istio-ingressgateway).
+allow-planning-service: test_parses, test_action_allow, test_exactly_two_source_principals.
+allow-expense-service: test_parses, test_action_allow, test_exactly_two_source_principals.
+allow-frontend-service: test_parses, test_action_allow, test_exactly_one_source_principal,
+test_source_principal_is_ingressgateway.
+allow-ingress-gateway: test_parses, test_action_allow, test_empty_rule_allows_all,
+test_namespace_istio_system (metadata.namespace == istio-system).
+
+telemetry.yaml tests (3 tests):
+test_parses, test_sampling_100 (randomSamplingPercentage == 100.0), test_namespace_svp.
+
+destination-rules.yaml tests (15 tests):
+load all four DestinationRule documents.
+for each of the four services (customer-user-service, planning-service, expense-service, frontend-service):
+test that ROUND_ROBIN load balancing is set.
+for customer-user-service specifically: test_max_requests_per_connection_10,
+test_connect_timeout_30s, test_consecutive_5xx_errors_5, test_base_ejection_time_30s.
+for the other three services: test_correct_connection_pool_settings (maxRequestsPerConnection 10, connectTimeout 30s),
+test_correct_outlier_detection_settings (consecutive5xxErrors 5, baseEjectionTime 30s).
+
+gateway.yaml tests (4 tests):
+test_parses, test_port_80_http (server port 80, protocol HTTP),
+test_selector_ingressgateway (selector.istio == ingressgateway),
+test_hosts_wildcard (hosts contains "*").
+
+virtual-services.yaml tests (10 tests):
+load all four VirtualService documents.
+test_customer_user_service_bound_to_svp_gateway.
+test_customer_user_service_has_api_customers_prefix.
+test_customer_user_service_has_api_users_prefix.
+test_planning_service_bound_to_svp_gateway.
+test_planning_service_has_api_plans_prefix.
+test_expense_service_bound_to_svp_gateway.
+test_expense_service_has_api_expenses_prefix.
+test_frontend_service_bound_to_svp_gateway.
+test_frontend_service_catch_all_prefix_is_last (the "/" route is the last http entry).
+test_all_four_virtual_services_present (exactly 4 documents loaded).
+
+tests/functional/unit/test_helm_templates.py:
+use subprocess to run helm commands.
+PROJECT_ROOT is resolved as Path(__file__).parent.parent.parent.parent (four levels up from the test file).
+HELM_CHART is PROJECT_ROOT / "k8s" / "helm" / "svp".
+
+test_helm_lint_passes:
+run helm lint against HELM_CHART.
+assert return code is 0.
+
+test_helm_template_renders:
+run helm template svp-test against HELM_CHART with --namespace test-ns.
+assert return code is 0 and stdout is non-empty.
+
+capture the rendered output for the following tests using a module-scoped fixture that runs helm template once and stores the result.
+
+test_no_hardcoded_namespace:
+assert the string "namespace: svp" does not appear anywhere in the rendered output.
+assert "namespace: test-ns" appears (confirming the release namespace is used).
+
+test_secret_contains_postgres_user:
+assert POSTGRES_USER appears in the rendered output.
+
+test_secret_contains_postgres_password:
+assert POSTGRES_PASSWORD appears in the rendered output.
+
+test_secret_contains_database_url_customer_user:
+assert DATABASE_URL_CUSTOMER_USER appears in the rendered output.
+
+test_secret_contains_database_url_planning:
+assert DATABASE_URL_PLANNING appears in the rendered output.
+
+test_secret_contains_database_url_expense:
+assert DATABASE_URL_EXPENSE appears in the rendered output.
+
+test_allow_redis_name_not_old_name:
+assert "allow-redis-ingress" does not appear anywhere in the rendered output.
+assert "allow-redis" appears in the rendered output.
+
+test_all_four_app_image_names:
+assert "svp/customer-user-service:latest" appears in the rendered output.
+assert "svp/planning-service:latest" appears in the rendered output.
+assert "svp/expense-service:latest" appears in the rendered output.
+assert "svp/frontend-service:latest" appears in the rendered output.
+
+test_network_policy_templates_use_release_namespace:
+parse each rendered yaml document.
+for every document with kind: NetworkPolicy, assert metadata.namespace does not equal "svp".
+
+general standards:
+all test functions are synchronous (no async needed for unit tests).
+use pathlib.Path throughout, no hardcoded string paths.
+all yaml loading uses yaml.safe_load or yaml.safe_load_all.
+all subprocess calls use subprocess.run with capture_output=True and text=True.
+no mocking — tests inspect real files.
+each test function tests exactly one assertion or one logical group.
+test function names use underscores, all lowercase.
+no bold headers, no inline-header bullet lists in any docstrings.
+add a pytest.ini or conftest marker so these tests can be run with: pytest tests/functional/unit/
