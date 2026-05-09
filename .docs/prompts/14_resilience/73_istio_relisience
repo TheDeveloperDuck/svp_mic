@@ -1,0 +1,42 @@
+Implement Istio resilience features covering rate limiting, circuit breaking, and fault injection for the svp platform.
+
+files:
+- k8s/istio/rate-limit.yaml
+- k8s/istio/fault-injection.yaml
+
+rate-limit.yaml:
+EnvoyFilter resource, namespace svp.
+name: customer-user-service-rate-limit.
+apply to workloads with label app: customer-user-service.
+use a LOCAL_RATE_LIMIT filter on the inbound HTTP filter chain.
+set token bucket to 10 requests per second with a burst of 10.
+return HTTP 429 when the limit is exceeded.
+
+fault-injection.yaml:
+two VirtualService patches, one for latency and one for abort.
+do not replace the existing virtual-services.yaml, create separate resources.
+
+VirtualService named customer-user-service-fault, namespace svp:
+match on prefix /customers.
+inject a 3 second delay on 50% of requests using httpFault.delay.
+bind to no gateway, applies to mesh internal traffic only.
+host: customer-user-service.
+
+VirtualService named expense-service-fault, namespace svp:
+match on prefix /expenses.
+inject an HTTP 503 abort on 30% of requests using httpFault.abort.
+bind to no gateway, applies to mesh internal traffic only.
+host: expense-service.
+
+imports / dependencies:
+apiVersion networking.istio.io/v1beta1 for VirtualService.
+apiVersion networking.istio.io/v1alpha3 for EnvoyFilter.
+EnvoyFilter LOCAL_RATE_LIMIT uses the envoy.filters.http.local_ratelimit typed config.
+fault injection VirtualServices apply to mesh traffic, not gateway traffic, so gateways field is omitted.
+the existing destination-rules.yaml outlierDetection already provides passive circuit breaking.
+these files are applied manually for testing and removed afterwards, not wired into install_istio.py.
+
+standards:
+follow kubernetes best practices.
+use resource requests and limits on all containers.
+add liveness and readiness probes where appropriate.

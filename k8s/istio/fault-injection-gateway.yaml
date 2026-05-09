@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: customer-user-service-vs
+  namespace: svp
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - svp-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/customers
+      fault:
+        delay:
+          percentage:
+            value: 50
+          fixedDelay: 3s
+      rewrite:
+        uri: /customers
+      route:
+        - destination:
+            host: customer-user-service
+            port:
+              number: 8001
+    - match:
+        - uri:
+            prefix: /api/users
+      rewrite:
+        uri: /users
+      route:
+        - destination:
+            host: customer-user-service
+            port:
+              number: 8001

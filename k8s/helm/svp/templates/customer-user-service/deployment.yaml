@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: customer-user-service
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundPorts: "5432,6379,9092,2181"
     spec:
       containers:
         - name: customer-user-service

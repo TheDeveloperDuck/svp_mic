@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: expense-service-vs
+  namespace: svp
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - svp-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/expenses
+      fault:
+        abort:
+          percentage:
+            value: 30
+          httpStatus: 503
+      rewrite:
+        uri: /expenses
+      route:
+        - destination:
+            host: expense-service
+            port:
+              number: 8003
