@@ -1,0 +1,569 @@
+❯ Read the entire project and tests directory before doing anything else.                                                               
+                                                                                                                                        
+  Read all files in tests/ including conftest.py, test_plans.py, test_expenses.py, test_cqrs.py, test_saga.py, and test_edge_cases.py.  
+                                                                                                                                        
+  Read all router files across all four services:                                                                                       
+  - customer_user_service/routers/                                                                                                      
+  - planning_service/routers/                                                                                                           
+  - expense_service/routers/                                                                                                            
+  - frontend_service/routers/                                                                                                           
+                                                                                                                                        
+  Read all main.py files for all four services to identify middleware, lifespan hooks, and app configuration.                           
+                                                                                                                                        
+  Read shared/tracing.py.                                                                                                               
+                                                                                                                                        
+  Once you have read everything, produce a structured report with no code and no changes.                                               
+                                                                                                                                        
+  The report must contain:                                                                                                              
+                                                                                                                                        
+  1. Every existing test, grouped by file, listed as: test function name, what it asserts, which HTTP method and endpoint it calls, and 
+   which fixtures it depends on.                                                                                                        
+                                                                                                                                        
+  2. Every API endpoint exposed across all four services, listed as: HTTP method, path, which service owns it, which router file it is  
+  in, what the endpoint does, what a valid request body looks like if applicable, and what the expected success response code is.       
+                                                                                                                                        
+  3. Every fixture defined in conftest.py, what it creates, and which test files use it.                                                
+                                                                                                                                        
+  4. Any gaps you can identify between the endpoints that exist and the endpoints that are currently tested.                            
+                                                                                                                                        
+  Do not modify any files. Do not write any tests. Only report.                                                                         
+
+● Reading everything in parallel before forming any conclusions.
+
+  Searched for 2 patterns, read 8 files (ctrl+o to expand)                                                                              
+                             
+● Now reading all router files and main.py files in parallel.                                                                           
+                                          
+  Searched for 1 pattern, read 12 files (ctrl+o to expand)                                                                              
+                                                                                                                                        
+● I now have a complete read of everything. Here is the structured report.                                                              
+                                                                                                                                        
+  ---                                                                                                                                   
+  1. Tests by file                                                                                                                      
+                                                                                                                                        
+  test_customers.py                                                                                                                     
+                                                                                                                                        
+  All tests call endpoints via nginx at http://localhost.                                                                               
+   
+  ┌─────────────────────────────┬──────────────────────────────────────────────────────┬───────────────────────┬────────────────────┐   
+  │           Function            │                   Asserts                   │         Method + Path         │     Fixtures     │ 
+  ├───────────────────────────────┼─────────────────────────────────────────────┼───────────────────────────────┼──────────────────┤    
+  │ test_create_customer          │ 201; body contains id, name, address,       │ POST /api/customers           │ client,          │ 
+  │                                  │ is_active=True, is_priority=False      │                                  │ unique_suffix    │
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤   
+  │ test_create_missing_name         │ 422                                    │ POST /api/customers              │ client,          │
+  │                                  │                                        │                                  │ unique_suffix    │   
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤
+  │ test_create_missing_address      │ 422                                    │ POST /api/customers              │ client,          │   
+  │                                  │                                        │                                  │ unique_suffix    │
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤
+  │ test_list_customers              │ 200; body is a list                    │ GET /api/customers               │ client           │
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤   
+  │ test_get_customer_by_id          │ 200; body id matches created id        │ GET /api/customers/{id}          │ client,          │
+  │                                  │                                        │                                  │ unique_suffix    │   
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤   
+  │ test_get_customer_nonexistent    │ 404                                    │ GET /api/customers/{random-uuid} │ client           │
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤   
+  │ test_deactivate_customer         │ 200; is_active=False                   │ PATCH                            │ client,          │
+  │                                  │                                        │ /api/customers/{id}/deactivate   │ unique_suffix    │   
+  ├──────────────────────────────────┼────────────────────────────────────────┼──────────────────────────────────┼──────────────────┤   
+  │ test_deactivate_already_inactive │ 409 on second call                     │ PATCH                            │ client,          │
+  │                                  │                                        │ /api/customers/{id}/deactivate   │ unique_suffix    │   
+  └──────────────────────────────────┴────────────────────────────────────────┴──────────────────────────────────┴──────────────────┘
+
+  ---
+  test_users.py
+               
+  ┌──────────────────────────────┬──────────────────────────────────────────────────────┬─────────────────┬───────────────────────┐
+  │           Function           │                       Asserts                        │  Method + Path  │       Fixtures        │     
+  ├──────────────────────────────┼──────────────────────────────────────────────────────┼─────────────────┼───────────────────────┤
+  │ test_create_sales_rep        │ 201; id, name, email, role=sales_rep, is_active=True │ POST /api/users │ client, unique_suffix │     
+  ├──────────────────────────────┼──────────────────────────────────────────────────────┼─────────────────┼───────────────────────┤
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤   
+  │ test_create_manager          │ 201; id, name, email, role=manager,          │ POST /api/users             │ client,             │   
+  │                              │ is_active=True                               │                             │ unique_suffix       │   
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤   
+  │ test_create_duplicate_email  │ 409 on second request with same email        │ POST /api/users             │ client,             │
+  │                              │                                              │                             │ unique_suffix       │   
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
+  │ test_create_missing_name     │ 422                                          │ POST /api/users             │ client,             │
+  │                              │                                              │                             │ unique_suffix       │
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤   
+  │ test_create_missing_email    │ 422                                          │ POST /api/users             │ client,             │
+  │                              │                                              │                             │ unique_suffix       │   
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
+  │ test_create_missing_password │ 422                                          │ POST /api/users             │ client,             │   
+  │                              │                                              │                             │ unique_suffix       │
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤   
+  │ test_create_missing_role     │ 422                                          │ POST /api/users             │ client,             │
+  │                              │                                              │                             │ unique_suffix       │   
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
+  │ test_create_invalid_role     │ 422                                          │ POST /api/users             │ client,             │   
+  │                              │                                              │                             │ unique_suffix       │
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
+  │ test_list_users              │ 200; body is a list                          │ GET /api/users              │ client              │
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
+  │ test_get_user_by_id          │ 200; id matches                              │ GET /api/users/{id}         │ client,             │
+  │                              │                                              │                             │ unique_suffix       │
+  ├──────────────────────────────┼──────────────────────────────────────────────┼─────────────────────────────┼─────────────────────┤
+  │ test_get_user_nonexistent    │ 404                                          │ GET                         │ client              │
+  │                              │                                              │ /api/users/{random-uuid}    │                     │
+  └──────────────────────────────┴──────────────────────────────────────────────┴─────────────────────────────┴─────────────────────┘
+
+  ---
+  test_plans.py
+               
+  ┌─────────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────┬─────────────────────┐
+  │                Function                 │               Asserts                │      Method + Path      │      Fixtures       │    
+  ├─────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────┼─────────────────────┤
+  │ test_create_plan_valid                  │ 201; id, rep_id, date, status=draft  │ POST /api/plans         │ client, seed_users  │    
+  ├─────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────┼─────────────────────┤
+  │ test_create_plan_nonexistent_rep_id     │ 404 or 422                          │ POST /api/plans          │ client              │    
+  ├─────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────┼─────────────────────┤
+  │ test_create_plan_missing_date           │ 422                                 │ POST /api/plans          │ client, seed_users  │    
+  ├─────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────┼─────────────────────┤    
+  │ test_create_plan_missing_start_location │ 422                                 │ POST /api/plans          │ client, seed_users  │
+  ├─────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────┼─────────────────────┤    
+  │ test_create_plan_missing_end_location   │ 422                                 │ POST /api/plans          │ client, seed_users  │
+  ├─────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────┼─────────────────────┤    
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │                                         │ 201; id, plan_id, customer_id,     │ POST                      │ client, seed_users, │    
+  │ test_add_visit                          │ customer_name, scheduled_order,    │ /api/plans/{id}/visits    │  seed_customer      │
+  │                                         │ status present                     │                           │                     │    
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_add_visit_missing_customer_id      │ 422                                │ POST                      │ client, seed_users, │    
+  │                                         │                                    │ /api/plans/{id}/visits    │  seed_customer      │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤    
+  │ test_add_visit_missing_scheduled_order  │ 422                                │ POST                      │ client, seed_users, │    
+  │                                         │                                    │ /api/plans/{id}/visits    │  seed_customer      │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤    
+  │ test_confirm_plan_no_visits             │ 422                                │ PATCH                     │ client, seed_users  │
+  │                                         │                                    │ /api/plans/{id}/confirm   │                     │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_confirm_plan_with_visit            │ 200; status=confirmed              │ PATCH                     │ client, seed_users, │    
+  │                                         │                                    │ /api/plans/{id}/confirm   │  seed_customer      │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤    
+  │ test_confirm_already_confirmed          │ 409                                │ PATCH                     │ client, seed_users, │    
+  │                                         │                                    │ /api/plans/{id}/confirm   │  seed_customer      │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤    
+  │ test_activate_confirmed_plan            │ 200; status=active                 │ PATCH                     │ client, seed_users, │
+  │                                         │                                    │ /api/plans/{id}/activate  │  seed_customer      │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_activate_draft_plan                │ 409                                │ PATCH                     │ client, seed_users  │
+  │                                         │                                    │ /api/plans/{id}/activate  │                     │    
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_complete_active_plan               │ 200; status=completed              │ PATCH                     │ client, seed_users, │    
+  │                                         │                                    │ /api/plans/{id}/complete  │  seed_customer      │
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_complete_draft_plan                │ 409                                │ PATCH                     │ client, seed_users  │
+  │                                         │                                    │ /api/plans/{id}/complete  │                     │    
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_list_plans                         │ 200; body is a list                │ GET /api/plans            │ client              │    
+  ├─────────────────────────────────────────┼────────────────────────────────────┼───────────────────────────┼─────────────────────┤
+  │ test_get_plan_nonexistent               │ 404                                │ GET                       │ client              │
+  │                                         │                                    │ /api/plans/{random-uuid}  │                     │    
+  └─────────────────────────────────────────┴────────────────────────────────────┴───────────────────────────┴─────────────────────┘
+                                                                                                                                        
+  ---                                                       
+  test_expenses.py
+
+  ┌──────────────────────────────────────┬──────────────────────────────────────────────────┬───────────────────┬───────────────────┐
+  │               Function               │                     Asserts                      │   Method + Path   │     Fixtures      │
+  ├──────────────────────────────────────┼─────────────────────────────────────────┼──────────────────────────────┼────────────────┤ 
+  │ test_create_expense_valid            │ 201; id, rep_id, plan_id, category,     │ POST /api/expenses           │ client,        │ 
+  │                                      │ status=submitted                        │                              │ seed_plan      │ 
+  ├──────────────────────────────────────┼─────────────────────────────────────────┼──────────────────────────────┼────────────────┤    
+  │ test_create_expense_missing_rep_id   │ 422                                     │ POST /api/expenses           │ client,        │    
+  │                                      │                                         │                              │ seed_plan      │    
+  │ test_create_expense_missing_plan_id   │ 422                                 │ POST /api/expenses           │ client, seed_users │   
+  ├───────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────┼────────────────────┤
+  │ test_create_expense_missing_category  │ 422                                 │ POST /api/expenses           │ client, seed_plan  │
+  ├───────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────┼────────────────────┤
+  │ test_create_expense_missing_amount    │ 422                                 │ POST /api/expenses           │ client, seed_plan  │
+  ├───────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────┼────────────────────┤   
+  │ test_submit_expense                   │ 200; status=pending_approval        │ PATCH                        │ client, seed_plan  │
+  │                                       │                                     │ /api/expenses/{id}/submit    │                    │   
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤
+  │ test_submit_already_pending_expense   │ 409                                │ PATCH                         │ client, seed_plan  │
+  │                                       │                                    │ /api/expenses/{id}/submit     │                    │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤   
+  │                                       │ 200; status=approved, decided_at   │ PATCH                         │ client,            │
+  │ test_approve_pending_expense          │ not null                           │ /api/expenses/{id}/approve    │ seed_users,        │   
+  │                                       │                                    │                               │ seed_plan          │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤
+  │                                       │                                    │ PATCH                         │ client,            │
+  │ test_approve_already_approved_expense │ 409                                │ /api/expenses/{id}/approve    │ seed_users,        │   
+  │                                       │                                    │                               │ seed_plan          │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤   
+  │                                       │                                    │ PATCH                         │ client,            │
+  │ test_reject_pending_expense           │ 200; status=rejected               │ /api/expenses/{id}/reject     │ seed_users,        │
+  │                                       │                                    │                               │ seed_plan          │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤
+  │                                       │                                    │ PATCH                         │ client,            │
+  │ test_resubmit_rejected_expense        │ 200; status=submitted              │ /api/expenses/{id}/resubmit   │ seed_users,        │   
+  │                                       │                                    │                               │ seed_plan          │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤   
+  │                                       │                                    │ PATCH                         │ client,            │
+  │ test_resubmit_approved_expense        │ 409                                │ /api/expenses/{id}/resubmit   │ seed_users,        │   
+  │                                       │                                    │                               │ seed_plan          │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤   
+  │ test_list_expenses                    │ 200; body is a list                │ GET /api/expenses             │ client             │
+  ├───────────────────────────────────────┼────────────────────────────────────┼───────────────────────────────┼────────────────────┤
+  │ test_get_expense_nonexistent          │ 404                                │ GET                           │ client             │
+  │                                       │                                    │ /api/expenses/{random-uuid}   │                    │   
+  └───────────────────────────────────────┴────────────────────────────────────┴───────────────────────────────┴────────────────────┘
+                                                                                                                                        
+  ---                                                       
+  test_cqrs.py
+
+  ┌─────────────────────────────────┬──────────────────────────────────┬─────────────────────────────────────┬──────────────────────┐
+  │            Function             │             Asserts              │            Method + Path            │       Fixtures       │
+  ├─────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────────┼──────────────────────┤
+  │                                   │ 200; new plan row has         │                                        │                    │
+  │ test_plan_history_after_create    │ status=draft, visit_count=0,  │ GET /api/plans/read/history?rep_id=... │ client, seed_users │
+  │                                   │ call_count=0                  │                                        │                    │   
+  ├───────────────────────────────────┼───────────────────────────────┼────────────────────────────────────────┼────────────────────┤
+  │                                   │ visit_count increments to 1   │                                        │ client,            │   
+  │ test_plan_history_visit_count     │ after adding a visit          │ GET /api/plans/read/history?rep_id=... │ seed_users,        │
+  │                                    │                              │                                        │ seed_customer      │   
+  ├────────────────────────────────────┼──────────────────────────────┼────────────────────────────────────────┼────────────────────┤
+  │                                    │                              │                                        │ client,            │   
+  │ test_plan_history_after_confirm    │ plan row status=confirmed    │ GET /api/plans/read/history?rep_id=... │ seed_users,        │
+  │                                    │                              │                                        │ seed_customer      │   
+  ├────────────────────────────────────┼──────────────────────────────┼────────────────────────────────────────┼────────────────────┤   
+  │ test_plan_read_rep                 │ 200; all rows have matching  │ GET /api/plans/read/rep/{rep_id}       │ client, seed_users │
+  │                                    │ rep_id, at least 1 result    │                                        │                    │   
+  ├────────────────────────────────────┼──────────────────────────────┼────────────────────────────────────────┼────────────────────┤
+  │                                    │ plan appears with            │                                        │ client,            │
+  │ test_plan_read_active              │ status=active                │ GET /api/plans/read/active             │ seed_users,        │
+  │                                    │                              │                                        │ seed_customer      │   
+  ├────────────────────────────────────┼──────────────────────────────┼────────────────────────────────────────┼────────────────────┤
+  │ test_expense_history_after_create  │ 200; expense row has         │ GET                                    │ client, seed_users │   
+  │                                    │ status=submitted             │ /api/expenses/read/history?rep_id=...  │                    │
+  ├────────────────────────────────────┼──────────────────────────────┼────────────────────────────────────────┼────────────────────┤
+  │                                    │ expense row has              │ GET                                    │                    │
+  │ test_expense_history_after_approve │ status=approved, decided_at  │ /api/expenses/read/history?rep_id=...  │ client, seed_users │   
+  │                                    │ not null                     │                                        │                    │
+  ├────────────────────────────────────┼──────────────────────────────┼────────────────────────────────────────┼────────────────────┤   
+  │ test_expense_read_rep              │ 200; all rows have matching  │ GET /api/expenses/read/rep/{rep_id}    │ client, seed_users │
+  │                                    │ rep_id, at least 1 result    │                                        │                    │   
+  └────────────────────────────────────┴──────────────────────────────┴────────────────────────────────────────┴────────────────────┘
+                                                                                                                                        
+  ---                                                       
+  test_saga.py
+              
+  ┌────────────────────────────────────────────────────┬───────────────────────────┬─────────────────────────────────────┬──────────┐
+  │                      Function                      │          Asserts          │            Method + Path            │ Fixtures │   
+  ├────────────────────────────────────────────────────┼───────────────────────────┼─────────────────────────────────────┼──────────┤
+  │ test_deactivate_customer_no_active_plans           │ 200; is_active=False      │ PATCH                               │ client   │   
+  │                                                    │                           │ /api/customers/{id}/deactivate      │          │
+  ├────────────────────────────────────────────────────┼───────────────────────────┼─────────────────────────────────────┼──────────┤
+  │                                                    │ plan status reverts to    │ PATCH                               │          │   
+  │ test_deactivate_customer_confirmed_plan_rolls_back │ draft within 5s (polls    │ /api/customers/{id}/deactivate, GET │ client   │
+  │                                                    │ GET /api/plans/{id})      │  /api/plans/{id}                    │          │   
+  ├────────────────────────────────────────────────────┼───────────────────────────┼─────────────────────────────────────┼──────────┤
+  │                                                    │ plan status reverts to    │ PATCH                               │          │
+  │ test_deactivate_customer_active_plan_rolls_back    │ draft within 5s           │ /api/customers/{id}/deactivate, GET │ client   │   
+  │                                                    │                           │  /api/plans/{id}                    │          │
+  ├────────────────────────────────────────────────────┼───────────────────────────┼─────────────────────────────────────┼──────────┤   
+  │ test_deactivate_already_inactive_customer          │ 409                       │ PATCH                               │ client   │
+  │                                                    │                           │ /api/customers/{id}/deactivate      │          │
+  └────────────────────────────────────────────────────┴───────────────────────────┴─────────────────────────────────────┴──────────┘
+
+  ---
+  test_edge_cases.py
+                    
+  ┌────────────────────────────────────────────┬─────────────────────────┬────────────────────────────────────────────────┬──────────┐
+  │                  Function                  │         Asserts         │                 Method + Path                  │ Fixtures │  
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤
+  │ test_list_plans_empty_for_unknown_rep      │ 200; body is empty list │ GET /api/plans?rep_id={random}                 │ client   │  
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤
+  │ test_list_expenses_empty_for_unknown_rep   │ 200; body is empty list │ GET /api/expenses?rep_id={random}              │ client   │  
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤
+  │ test_plan_history_empty_for_unknown_rep    │ 200; body is empty list │ GET /api/plans/read/history?rep_id={random}    │ client   │  
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_expense_history_empty_for_unknown_rep │ 200; body is empty list │ GET /api/expenses/read/history?rep_id={random} │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_get_plan_not_found                    │ 404                     │ GET /api/plans/{random-uuid}                   │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_get_expense_not_found                 │ 404                     │ GET /api/expenses/{random-uuid}                │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_get_user_not_found                    │ 404                     │ GET /api/users/{random-uuid}                   │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_get_customer_not_found                │ 404                     │ GET /api/customers/{random-uuid}               │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_create_plan_empty_body                │ 422                     │ POST /api/plans                                │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_create_expense_empty_body             │ 422                     │ POST /api/expenses                             │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤
+  │ test_create_user_empty_body                │ 422                     │ POST /api/users                                │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_create_customer_empty_body            │ 422                     │ POST /api/customers                            │ client   │
+  ├────────────────────────────────────────────┼─────────────────────────┼────────────────────────────────────────────────┼──────────┤  
+  │ test_add_visit_unknown_plan                │ 404                     │ POST /api/plans/{random-uuid}/visits           │ client   │
+  └────────────────────────────────────────────┴─────────────────────────┴────────────────────────────────────────────────┴──────────┘  
+   
+  ---                                                                                                                                   
+  2. All API endpoints                                      
+                                                                                                                                        
+  Paths shown as the service sees them (nginx strips the /api prefix before forwarding). All services mount their routers without an
+  additional prefix so the service path equals the nginx-rewritten path.                                                                
+                                                            
+  Customer User Service — customer_user_service/routers/customers.py                                                                    
+                                                            
+  ┌────────┬─────────────────────────────────────┬──────────────────────────────────┬───────────────────────────────────┬──────────┐    
+  │ Method │                Path                 │               Does               │        Valid request body         │ Success  │ 
+  │        │                                     │                                  │                                   │   code   │    
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤ 
+  │ GET    │ /customers                          │ Return all active customers      │ —                                 │ 200      │ 
+  │        │                                     │ (Redis-cached)                   │                                   │          │    
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤    
+  │ GET    │ /customers/{customer_id}            │ Fetch one customer by UUID       │ —                                 │ 200      │    
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤    
+  │ POST   │ /customers                          │ Create customer                  │ {"name": str, "address": str}     │ 201      │ 
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤    
+  │        │                                     │ Update mutable fields (name,     │ {"name"?: str, "address"?: str,   │          │ 
+  │ PATCH  │ /customers/{customer_id}            │ address, lat, lng,               │ "lat"?: float, "lng"?: float,     │ 200      │    
+  │        │                                     │ assigned_rep_id — all optional)  │ "assigned_rep_id"?: uuid}         │          │ 
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤ 
+  │ PATCH  │ /customers/{customer_id}/deactivate │ Soft-delete customer, publish    │ —                                 │ 200      │
+  │        │                                     │ customer.deactivated Kafka event │                                   │          │    
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤
+  │        │                                     │ Set is_priority=True (manager    │                                   │          │    
+  │ PATCH  │ /customers/{customer_id}/flag       │ role required via X-User-Id      │ —                                 │ 200      │    
+  │        │                                     │ header)                          │                                   │          │
+  ├────────┼─────────────────────────────────────┼──────────────────────────────────┼───────────────────────────────────┼──────────┤    
+  │ PATCH  │ /customers/{customer_id}/assign     │ Assign a sales rep to the        │ {"rep_id": uuid}                  │ 200      │
+  │        │                                     │ customer                         │                                   │          │
+  └────────┴─────────────────────────────────────┴──────────────────────────────────┴───────────────────────────────────┴──────────┘
+
+  Customer User Service — customer_user_service/routers/users.py                                                                        
+   
+  ┌────────┬──────────────────┬────────────────────────────────┬────────────────────────────────────────────────────────┬──────────┐    
+  │ Method │       Path       │              Does              │                   Valid request body                   │ Success  │
+  │        │                  │                                │                                                        │   code   │
+  ├────────┼──────────────────┼────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+  │ GET    │ /users           │ List all users                 │ —                                                      │ 200      │
+  ├────────┼──────────────────┼────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+  │ GET    │ /users/{user_id} │ Fetch one user by UUID         │ —                                                      │ 200      │    
+  ├────────┼──────────────────┼────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+  │ POST   │ /users           │ Create user; hashes password;  │ {"name": str, "email": str, "password": str, "role":   │ 201      │    
+  │        │                  │ rejects duplicate email        │ "sales_rep"|"manager"|"administrator"}                 │          │
+  ├────────┼──────────────────┼────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤    
+  │ PATCH  │ /users/{user_id} │ Update name, email, or role    │ {"name"?: str, "email"?: str, "role"?: enum}           │ 200      │
+  │        │                  │ (all optional)                 │                                                        │          │
+  ├────────┼──────────────────┼────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤    
+  │        │                  │ Hard-delete user               │                                                        │          │
+  │ DELETE │ /users/{user_id} │ (administrator role required   │ —                                                      │ 204      │    
+  │        │                  │ via X-User-Id header)          │                                                        │          │    
+  └────────┴──────────────────┴────────────────────────────────┴────────────────────────────────────────────────────────┴──────────┘
+                                                                                                                                        
+  Planning Service — planning_service/routers/plans.py      
+
+  ┌────────┬───────────────────────────┬──────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+  │ Method │           Path            │             Does             │               Valid request body                │ Success   │
+  │        │                           │                              │                                                 │   code    │
+  ├────────┼───────────────────────────┼─────────────────────────────┼──────────────────────────────────────────────────┼───────────┤
+  │ POST   │ /plans                    │ Create plan in draft state; │ {"rep_id": uuid, "date": YYYY-MM-DD,             │ 201       │
+  │        │                           │  validates rep exists       │ "start_location": str, "end_location": str}      │           │   
+  │        │                           │ exists                   │                                                     │          │ 
+  ├────────┼───────────────────────────┼──────────────────────────┼─────────────────────────────────────────────────────┼──────────┤    
+  │ GET    │ /plans                    │ List plans; optional     │ —                                                   │ 200      │ 
+  │        │                           │ ?rep_id filter           │                                                     │          │ 
+  ├────────┼───────────────────────────┼──────────────────────────┼─────────────────────────────────────────────────────┼──────────┤ 
+  │ GET    │ /plans/{plan_id}          │ Fetch one plan           │ —                                                   │ 200      │ 
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤
+  │        │                                    │ draft → confirmed;      │                                              │          │   
+  │ PATCH  │ /plans/{plan_id}/confirm           │ requires ≥1 visit or    │ —                                            │ 200      │
+  │        │                                    │ call                    │                                              │          │   
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤
+  │ PATCH  │ /plans/{plan_id}/activate          │ confirmed → active      │ —                                            │ 200      │
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤
+  │ PATCH  │ /plans/{plan_id}/complete          │ active → completed      │ —                                            │ 200      │
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤   
+  │        │                                    │                         │ {"plan_id": uuid, "customer_id": uuid,       │          │
+  │ POST   │ /plans/{plan_id}/visits            │ Add visit to plan       │ "customer_name": str, "scheduled_order":     │ 201      │   
+  │        │                                    │                         │ int}                                         │          │   
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤
+  │        │                                    │                         │ {"plan_id": uuid, "customer_id": uuid,       │          │   
+  │ POST   │ /plans/{plan_id}/calls             │ Add call to plan        │ "customer_name": str, "scheduled_order":     │ 201      │
+  │        │                                    │                         │ int} (inferred from schema)                  │          │
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤
+  │ PATCH  │ /plans/{plan_id}/visits/{visit_id} │ Update visit status     │ {"status"?: enum, "outcome_notes"?: str}     │ 200      │   
+  │        │                                    │ and/or outcome_notes    │                                              │          │
+  ├────────┼────────────────────────────────────┼─────────────────────────┼──────────────────────────────────────────────┼──────────┤   
+  │ PATCH  │ /plans/{plan_id}/calls/{call_id}   │ Update call status      │ {"status"?: enum, "outcome_notes"?: str}     │ 200      │
+  │        │                                    │ and/or outcome_notes    │                                              │          │   
+  └────────┴────────────────────────────────────┴─────────────────────────┴──────────────────────────────────────────────┴──────────┘
+                                                                                                                                        
+  Planning Service — planning_service/routers/plans_read.py 
+
+  ┌────────┬──────────────────────────┬──────────────────────────────┬────────────────────────────────┬──────────────┐
+  │ Method │           Path           │             Does             │          Query params          │ Success code │
+  ├────────┼──────────────────────────┼──────────────────────────────┼────────────────────────────────┼──────────────┤
+  │ GET    │ /plans/read/rep/{rep_id} │ All plan summaries for a rep │ —                              │ 200          │
+  ├────────┼──────────────────────────┼──────────────────────────────┼────────────────────────────────┼──────────────┤
+  │ GET    │ /plans/read/active       │ All plans in active status   │ —                              │ 200          │                  
+  ├────────┼──────────────────────────┼──────────────────────────────┼────────────────────────────────┼──────────────┤                  
+  │ GET    │ /plans/read/history      │ Full plan history            │ ?rep_id, ?date (both optional) │ 200          │                  
+  └────────┴──────────────────────────┴──────────────────────────────┴────────────────────────────────┴──────────────┘                  
+                                                            
+  Expense Service — expense_service/routers/expenses.py                                                                                 
+                                                            
+  ┌────────┬────────────────────────────────┬──────────────────────────┬────────────────────────────────────────────────┬───────────┐   
+  │ Method │              Path              │           Does           │               Valid request body               │ Success   │
+  │        │                                │                          │                                                │   code    │   
+  ├────────┼────────────────────────────────┼──────────────────────────┼────────────────────────────────────────────────┼───────────┤
+  │        │                                 │ Create submission in      │ {"rep_id": uuid, "plan_id": uuid,            │          │ 
+  │ POST   │ /expenses                       │ submitted state           │ "category": str, "amount": decimal,          │ 201      │    
+  │        │                                 │                           │ "description"?: str}                         │          │ 
+  ├────────┼─────────────────────────────────┼───────────────────────────┼──────────────────────────────────────────────┼──────────┤    
+  │ GET    │ /expenses                       │ List submissions          │ ?rep_id, ?expense_status (both optional)     │ 200      │    
+  ├────────┼─────────────────────────────────┼───────────────────────────┼──────────────────────────────────────────────┼──────────┤ 
+  │ GET    │ /expenses/{expense_id}          │ Fetch one submission      │ —                                            │ 200      │    
+  ├────────┼─────────────────────────────────┼───────────────────────────┼──────────────────────────────────────────────┼──────────┤ 
+  │ PATCH  │ /expenses/{expense_id}/submit   │ submitted →               │ —                                            │ 200      │    
+  │        │                                 │ pending_approval          │                                              │          │ 
+  ├────────┼─────────────────────────────────┼───────────────────────────┼──────────────────────────────────────────────┼──────────┤    
+  │ PATCH  │ /expenses/{expense_id}/approve  │ pending_approval →        │ {"manager_id": uuid}                         │ 200      │ 
+  │        │                                 │ approved                  │                                              │          │ 
+  ├────────┼─────────────────────────────────┼───────────────────────────┼──────────────────────────────────────────────┼──────────┤ 
+  │ PATCH  │ /expenses/{expense_id}/reject   │ pending_approval →        │ {"manager_id": uuid}                         │ 200      │    
+  │        │                                 │ rejected                  │                                              │          │ 
+  ├────────┼─────────────────────────────────┼───────────────────────────┼──────────────────────────────────────────────┼──────────┤    
+  │ PATCH  │ /expenses/{expense_id}/resubmit │ rejected → submitted;     │ {"amount"?: decimal, "description"?: str,    │ 200      │    
+  │        │                                 │ optional amendment        │ "receipt_image"?: str}                       │          │
+  └────────┴─────────────────────────────────┴───────────────────────────┴──────────────────────────────────────────────┴──────────┘    
+                                                            
+  Expense Service — expense_service/routers/expenses_read.py                                                                            
+   
+  ┌────────┬────────────────────────────────┬───────────────────────────────────────┬────────────────────────────────┬─────────────┐    
+  │ Method │              Path              │                 Does                  │          Query params          │  Success    │
+  │        │                                │                                       │                                │    code     │
+  ├────────┼────────────────────────────────┼───────────────────────────────────────┼────────────────────────────────┼─────────────┤
+  │ GET    │ /expenses/read/rep/{rep_id}    │ All expense summaries for a rep       │ —                              │ 200         │
+  ├────────┼────────────────────────────────┼───────────────────────────────────────┼────────────────────────────────┼─────────────┤    
+  │ GET    │ /expenses/read/status/{status} │ All expenses with a given status      │ —                              │ 200         │
+  │        │                                │ string                                │                                │             │    
+  ├────────┼────────────────────────────────┼───────────────────────────────────────┼────────────────────────────────┼─────────────┤    
+  │ GET    │ /expenses/read/history         │ Full expense history                  │ ?rep_id, ?status (both         │ 200         │
+  │        │                                │                                       │ optional)                      │             │    
+  └────────┴────────────────────────────────┴───────────────────────────────────────┴────────────────────────────────┴─────────────┘
+
+  Frontend Service — frontend_service/routers/pages.py
+
+  ┌────────┬───────────────────┬──────────────────────────────────────────────────────────────────────────────────────┬──────────────┐
+  │ Method │       Path        │                                         Does                                         │ Success code │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /                 │ Render index.html                                                                    │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /rep/plan         │ Render rep day-plan builder; fetches /api/customers                                  │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /rep/execute      │ Render rep execution view; fetches /api/plans                                        │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /rep/expenses     │ Render rep expense history; optional ?rep_id                                         │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /manager/expenses │ Render manager approval queue; fetches /api/expenses                                 │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /manager/overview │ Render team overview; fetches /api/plans/read/history and /api/expenses/read/history │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /admin/users      │ Render user management page; fetches /api/users                                      │ 200 HTML     │
+  ├────────┼───────────────────┼──────────────────────────────────────────────────────────────────────────────────────┼──────────────┤  
+  │ GET    │ /admin/customers  │ Render customer management page; fetches /api/customers                              │ 200 HTML     │
+  └────────┴───────────────────┴──────────────────────────────────────────────────────────────────────────────────────┴──────────────┘  
+   
+  Health checks — all four services                                                                                                     
+                                                            
+  GET /health on each service returns {"status": "ok"} with 200.                                                                        
+   
+  ---                                                                                                                                   
+  3. Fixtures in conftest.py                                
+                                                                                                                                        
+  ┌───────────────┬──────────┬────────────────────────────────────────────────────────────┬─────────────────────────────────────────┐
+  │    Fixture    │  Scope   │                      What it creates                       │                 Used by                 │   
+  ├───────────────┼──────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────────────┤
+  │ client        │ function │ httpx.AsyncClient with base_url=http://localhost           │ All test files                          │   
+  ├───────────────┼──────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────────────┤
+  │               │          │                                                            │ test_customers.py, test_users.py,       │   
+  │ unique_suffix │ function │ 8-character random hex string                              │ test_plans.py, test_expenses.py         │   
+  │               │          │                                                            │ (directly and via seed fixtures)        │   
+  ├───────────────┼──────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────────────┤   
+  │ seed_users    │ function │ One sales_rep and one manager via POST /api/users; yields  │ test_plans.py, test_expenses.py,        │
+  │               │          │ {"rep": ..., "manager": ...}                               │ test_cqrs.py                            │   
+  ├───────────────┼──────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────────────┤
+  │ seed_customer │ function │ One customer via POST /api/customers; yields full customer │ test_plans.py, test_expenses.py (via    │   
+  │               │          │  JSON                                                      │ seed_plan), test_cqrs.py                │
+  ├───────────────┼──────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────────────┤   
+  │               │          │ One plan via POST /api/plans and one visit via POST        │                                         │   
+  │ seed_plan     │ function │ /api/plans/{id}/visits; depends on seed_users and          │ test_expenses.py                        │
+  │               │          │ seed_customer; yields {"plan": ..., "visit": ...}          │                                         │   
+  └───────────────┴──────────┴────────────────────────────────────────────────────────────┴─────────────────────────────────────────┘
+
+  seed_plan has an implicit dependency chain: it requires client, seed_users, and seed_customer, which in turn require client and       
+  unique_suffix.
+                                                                                                                                        
+  ---                                                       
+  4. Gaps between existing endpoints and existing tests
+                                                                                                                                        
+  Completely untested endpoints
+                                                                                                                                        
+  Customer service — write side                                                                                                         
+  - PATCH /customers/{id} — the general field-update endpoint has zero test coverage. No test sends a partial update.
+  - PATCH /customers/{id}/flag — the manager-only priority flag endpoint is entirely untested. Neither the happy path nor the 403       
+  (missing or non-manager X-User-Id) is exercised.                                                                               
+  - PATCH /customers/{id}/assign — the rep-assignment endpoint is entirely untested.                                                    
+  - PATCH /users/{id} — the user field-update endpoint has zero test coverage.      
+  - DELETE /users/{id} — the administrator-only hard-delete endpoint is entirely untested.                                              
+                                                                                                                                        
+  Planning service — write side                                                                                                         
+  - POST /plans/{plan_id}/calls — adding a call is never tested despite the endpoint existing and the confirm logic accepting calls as  
+  an alternative to visits.                                                                                                             
+  - PATCH /plans/{plan_id}/visits/{visit_id} — updating a visit's status or outcome_notes is never tested.
+  - PATCH /plans/{plan_id}/calls/{call_id} — updating a call is never tested.                                                           
+                                                                                                                                        
+  Expense service — read side
+  - GET /expenses/read/status/{status} — the path-param-based status filter read model endpoint has no test at all.                     
+                                                                                                                                        
+  Frontend service
+  - All 8 HTML page routes are untested. No test file touches the frontend service.                                                     
+                                                                                                                                        
+  Health checks
+  - No test verifies any of the four /health endpoints.                                                                                 
+                                                                                                                                        
+  Partially tested or missing scenarios
+                                                                                                                                        
+  CQRS read model — status transitions not fully covered                                                                                
+  - GET /plans/read/history is tested for draft and confirmed states only. The activate and complete transitions are not verified in the
+   history projection.                                                                                                                  
+  - GET /expenses/read/history is tested for submitted and approved. Rejected and resubmitted status transitions are not verified in the
+   read model.                                                                                                                          
+  - GET /plans/read/history with the ?date filter is never tested.                                                                      
+  - GET /expenses/read/history with the ?status filter is never tested.
+                                                                                                                                        
+  Expense service — state machine invalid transitions       
+  - Approving a rejected or draft expense (not pending_approval) is not tested.                                                         
+  - Rejecting a draft or already-rejected expense is not tested.                                                                        
+  - Resubmitting an expense that was never rejected (i.e., still in submitted state) is not tested.                                     
+                                                                                                                                        
+  Role-based access control                                                                                                             
+  - No test exercises the 403 response from PATCH /customers/{id}/flag when the X-User-Id header is absent or belongs to a non-manager. 
+  - No test exercises the 400 response when X-User-Id is not a valid UUID.                                                              
+                                                                          
+  Plan state machine — invalid transitions not fully covered                                                                            
+  - Activating a completed plan is not tested.                                                                                          
+  - Completing a confirmed plan (skipping active) is not tested.                                                                        
+  - Completing an already-completed plan is not tested.                                                                                 
+                                                                                                                                        
+  Visit added to non-draft plan
+  - No test attempts to add a visit or call to a plan that is already confirmed, active, or completed. The service behaviour in these   
+  cases is untested.                                                                                                                    
+                                                                                                                                        
+  GET /plans with ?rep_id filter returning actual results                                                                               
+  - test_edge_cases.py tests the empty-list case for an unknown rep, but no test verifies that ?rep_id correctly returns only the target
+   rep's plans when plans exist.                                                                                                        
+                                
+  GET /expenses with ?expense_status filter                                                                                             
+  - The status query parameter on the write-side list endpoint is never tested.                                                         
+                                                                                                                                        
+✻ Churned for 2m 26s                                                                                                                    
+                       
