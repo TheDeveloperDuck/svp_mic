@@ -1,0 +1,123 @@
+Create three integration test files for frontend pages, tracing propagation, and mTLS verification.
+
+context:
+base URL is http://localhost:8080 via Istio ingressgateway.
+all tests are async using pytest with anyio.
+the functional conftest.py defines client and unique_suffix fixtures.
+do not touch anything outside tests/functional/.
+the KinD cluster has Calico, Istio STRICT mTLS, and the observability stack running.
+
+files to create:
+tests/functional/integration/test_frontend_pages.py
+tests/functional/integration/test_tracing_propagation.py
+tests/functional/integration/test_mtls.py
+
+tests/functional/integration/test_frontend_pages.py:
+all 8 tests use the client fixture.
+each test does a GET request and asserts status 200 and content-type contains text/html.
+
+test_index_page_returns_200: GET /
+test_rep_plan_page_returns_200: GET /rep/plan
+test_rep_execute_page_returns_200: GET /rep/execute
+test_rep_expenses_page_returns_200: GET /rep/expenses
+test_manager_expenses_page_returns_200: GET /manager/expenses
+test_manager_overview_page_returns_200: GET /manager/overview
+test_admin_users_page_returns_200: GET /admin/users
+test_admin_customers_page_returns_200: GET /admin/customers
+
+tests/functional/integration/test_tracing_propagation.py:
+import subprocess, secrets, pytest.
+use the client fixture.
+
+test_traceid_logged_by_customer_user_service:
+  generate a trace_id using secrets.token_hex(16).
+  send GET /api/customers with header x-b3-traceid: {trace_id}.
+  assert status 200.
+  run kubectl logs -n svp deployment/svp-customer-user-service -c customer-user-service.
+  assert trace_id appears in the log output.
+
+test_traceid_logged_by_planning_service:
+  same pattern targeting GET /api/plans.
+  check logs of svp-planning-service.
+
+test_traceid_logged_by_expense_service:
+  same pattern targeting GET /api/expenses.
+  check logs of svp-expense-service.
+
+test_traceid_logged_by_frontend_service:
+  same pattern targeting GET /.
+  check logs of svp-frontend-service.
+
+test_request_without_tracing_headers_returns_200_customer:
+  GET /api/customers with no B3 headers.
+  assert status 200.
+
+test_request_without_tracing_headers_returns_200_planning:
+  GET /api/plans with no B3 headers.
+  assert status 200.
+
+test_request_without_tracing_headers_returns_200_expense:
+  GET /api/expenses with no B3 headers.
+  assert status 200.
+
+test_all_seven_b3_headers_do_not_cause_500:
+  send GET /api/customers with all seven B3 headers set:
+    x-request-id, x-b3-traceid, x-b3-spanid, x-b3-parentspanid,
+    x-b3-sampled, x-b3-flags, x-forwarded-for.
+  assert status != 500.
+
+test_frontend_propagates_traceid_to_customer_service:
+  generate a trace_id using secrets.token_hex(16).
+  GET /rep/plan with header x-b3-traceid: {trace_id}.
+  assert status 200.
+  run kubectl logs -n svp deployment/svp-customer-user-service -c customer-user-service.
+  assert trace_id appears in the log output.
+  (the frontend internally calls customer-user-service when rendering /rep/plan)
+
+tests/functional/integration/test_mtls.py:
+import subprocess, pytest.
+no client fixture needed — all tests use subprocess to run kubectl and istioctl.
+
+test_customer_user_service_tls_strict:
+  run: istioctl authn tls-check -n svp
+    deployment/svp-customer-user-service.customer-user-service.svp.svc.cluster.local
+  assert "STRICT" in stdout.
+
+test_planning_service_tls_strict:
+  same for svp-planning-service.planning-service.svp.svc.cluster.local
+
+test_expense_service_tls_strict:
+  same for svp-expense-service.expense-service.svp.svc.cluster.local
+
+test_frontend_service_tls_strict:
+  same for svp-frontend-service.frontend-service.svp.svc.cluster.local
+
+test_all_app_pods_have_sidecar_injected:
+  run: kubectl get pods -n svp -o json.
+  parse JSON output.
+  for each pod whose name starts with svp- assert containerStatuses length == 2.
+  this confirms the Envoy sidecar is injected alongside the app container.
+
+test_curl_without_sidecar_to_customer_user_service_fails:
+  kubectl exec -n svp redis-0 --
+    wget -qO- --timeout=3 http://customer-user-service:8001/health
+  assert return code is non-zero or stdout is empty.
+  this confirms STRICT mTLS blocks plain HTTP from pods with no sidecar.
+
+test_curl_without_sidecar_to_planning_service_fails:
+  same pattern targeting planning-service:8002.
+
+test_curl_without_sidecar_to_expense_service_fails:
+  same pattern targeting expense-service:8003.
+
+imports:
+httpx for the async test_tracing_propagation tests.
+subprocess for kubectl and istioctl calls.
+secrets for generating trace IDs.
+
+standards:
+async tests use @pytest.mark.anyio.
+synchronous kubectl and istioctl tests are plain def, no async decorator needed.
+subprocess calls use subprocess.run with capture_output=True, text=True, timeout=30.
+no mocking.
+each test is independent.
