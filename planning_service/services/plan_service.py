@@ -54,9 +54,9 @@ async def create_plan(payload: DayPlanCreate, db: AsyncSession) -> DayPlan:
     Return value:
     DayPlan -- the newly persisted plan ORM instance.
     """
-    async with httpx.AsyncClient() as http:
+    async with httpx.AsyncClient(timeout=30.0) as http:
         rep_resp = await http.get(
-            f"http://customer_user_service:8000/users/{payload.rep_id}"
+            f"http://customer-user-service:8001/users/{payload.rep_id}"
         )
     if rep_resp.status_code == 404:
         raise ValueError(f"Rep {payload.rep_id} not found.")

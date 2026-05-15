@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from planning_service.database import get_db
-from planning_service.models import CallStatus, DayPlan, VisitStatus
+from planning_service.models import CallStatus, DayPlan, DayPlanStatus, VisitStatus
 from planning_service.schemas import (
     CallCreate,
     CallResponse,
@@ -261,6 +261,17 @@ async def add_visit(
     Return value:
     VisitResponse -- the newly created visit record.
     """
+    plan = await plan_service.get_plan(plan_id, db)
+    if plan is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Plan {plan_id} not found.",
+        )
+    if plan.status != DayPlanStatus.draft:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Plan {plan_id} cannot be modified from status '{plan.status}'.",
+        )
     try:
         visit = await plan_service.add_visit(plan_id, payload, db)
     except ValueError as exc:

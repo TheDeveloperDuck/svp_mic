@@ -131,10 +131,11 @@ def test_allow_customer_user_service_parses():
     _load_all("allow-customer-user-service.yaml")
 
 
-def test_allow_customer_user_service_ingress_has_two_from_entries():
+def test_allow_customer_user_service_ingress_has_three_from_entries():
+    # Sources: frontend-service (port 8001), istio-system, planning-service
     docs = _load_all("allow-customer-user-service.yaml")
     doc = _find_doc(docs, "allow-customer-user-service-ingress")
-    assert len(doc["spec"]["ingress"]) == 2
+    assert len(doc["spec"]["ingress"]) == 3
 
 
 def test_allow_customer_user_service_ingress_from_svp_namespace():

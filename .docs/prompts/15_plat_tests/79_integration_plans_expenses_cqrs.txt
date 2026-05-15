@@ -1,0 +1,285 @@
+Create three integration test files for plans, expenses, and CQRS read models.
+
+context:
+base URL is http://localhost:8080 via Istio ingressgateway.
+the functional conftest.py defines client and unique_suffix fixtures.
+all tests are async using pytest with anyio.
+do not touch anything outside tests/functional/.
+
+files to create:
+tests/functional/integration/test_plans_extended.py
+tests/functional/integration/test_expenses_extended.py
+tests/functional/integration/test_cqrs_extended.py
+
+shared helpers pattern:
+each file defines its own local async helper functions for creating prerequisite data.
+helpers are not fixtures — they are plain async functions called inside tests.
+all user/customer/plan creation uses unique_suffix to avoid collisions.
+
+tests/functional/integration/test_plans_extended.py:
+import uuid and pytest at the top.
+use client and unique_suffix fixtures.
+
+helpers needed:
+_create_user(client, unique_suffix, role, tag) — POST /api/users, return json.
+_create_customer(client, unique_suffix) — POST /api/customers, return json.
+_create_plan(client, rep_id, unique_suffix) — POST /api/plans with date "2025-06-01",
+  start_location "Start {unique_suffix}", end_location "End {unique_suffix}", return json.
+_add_visit(client, plan_id, customer_id, customer_name, order=1) — POST /api/plans/{plan_id}/visits, return json.
+_add_call(client, plan_id, customer_id, customer_name, order=1) — POST /api/plans/{plan_id}/calls, return json.
+_confirm_plan(client, plan_id) — PATCH /api/plans/{plan_id}/confirm, return response.
+_activate_plan(client, plan_id) — PATCH /api/plans/{plan_id}/activate, return response.
+_complete_plan(client, plan_id) — PATCH /api/plans/{plan_id}/complete, return response.
+
+test_add_call_to_plan_returns_201:
+  create rep, customer, plan.
+  POST /api/plans/{plan_id}/calls.
+  assert status 201.
+  assert response.json() contains customer_id and scheduled_order.
+
+test_add_call_missing_customer_id_returns_422:
+  create rep, plan.
+  POST /api/plans/{plan_id}/calls with no customer_id.
+  assert status 422.
+
+test_add_call_missing_scheduled_order_returns_422:
+  create rep, customer, plan.
+  POST /api/plans/{plan_id}/calls with no scheduled_order.
+  assert status 422.
+
+test_add_call_to_unknown_plan_returns_404:
+  POST /api/plans/{uuid.uuid4()}/calls with valid body.
+  assert status 404.
+
+test_patch_visit_updates_status:
+  create rep, customer, plan, add visit, confirm plan, activate plan.
+  PATCH /api/plans/{plan_id}/visits/{visit_id} with {"status": "completed"}.
+  assert status 200.
+  assert response.json()["status"] == "completed".
+
+test_patch_visit_updates_outcome_notes:
+  create rep, customer, plan, add visit, confirm plan, activate plan.
+  PATCH /api/plans/{plan_id}/visits/{visit_id} with {"outcome_notes": "Notes {unique_suffix}"}.
+  assert status 200.
+  assert "Notes" in response.json()["outcome_notes"].
+
+test_patch_visit_unknown_id_returns_404:
+  create rep, customer, plan, add visit, confirm, activate.
+  PATCH /api/plans/{plan_id}/visits/{uuid.uuid4()} with {"status": "completed"}.
+  assert status 404.
+
+test_patch_call_updates_status:
+  create rep, customer, plan, add call, confirm plan, activate plan.
+  PATCH /api/plans/{plan_id}/calls/{call_id} with {"status": "completed"}.
+  assert status 200.
+  assert response.json()["status"] == "completed".
+
+test_patch_call_updates_outcome_notes:
+  create rep, customer, plan, add call, confirm, activate.
+  PATCH /api/plans/{plan_id}/calls/{call_id} with {"outcome_notes": "Call notes {unique_suffix}"}.
+  assert status 200.
+  assert "Call notes" in response.json()["outcome_notes"].
+
+test_patch_call_unknown_id_returns_404:
+  create rep, customer, plan, add call, confirm, activate.
+  PATCH /api/plans/{plan_id}/calls/{uuid.uuid4()} with {"status": "completed"}.
+  assert status 404.
+
+test_activate_completed_plan_returns_409:
+  create rep, customer, plan, add visit, confirm, activate, complete.
+  PATCH /api/plans/{plan_id}/activate.
+  assert status 409.
+
+test_complete_confirmed_plan_returns_409:
+  create rep, customer, plan, add visit, confirm.
+  PATCH /api/plans/{plan_id}/complete.
+  assert status 409.
+
+test_complete_already_completed_plan_returns_409:
+  create rep, customer, plan, add visit, confirm, activate, complete.
+  PATCH /api/plans/{plan_id}/complete.
+  assert status 409.
+
+test_add_visit_to_confirmed_plan_returns_409:
+  create rep, customer, plan, add visit, confirm.
+  POST /api/plans/{plan_id}/visits with valid body.
+  assert status 409.
+
+test_add_visit_to_active_plan_returns_409:
+  create rep, customer, plan, add visit, confirm, activate.
+  POST /api/plans/{plan_id}/visits with valid body.
+  assert status 409.
+
+test_add_visit_to_completed_plan_returns_409:
+  create rep, customer, plan, add visit, confirm, activate, complete.
+  POST /api/plans/{plan_id}/visits with valid body.
+  assert status 409.
+
+test_list_plans_filtered_by_rep_id:
+  create two reps.
+  create one plan for each rep.
+  GET /api/plans?rep_id={rep1_id}.
+  assert status 200.
+  assert all returned plans have rep_id matching rep1_id.
+  assert at least one plan is returned.
+
+test_confirm_plan_with_only_calls_returns_200:
+  create rep, customer, plan.
+  add a call (no visit).
+  PATCH /api/plans/{plan_id}/confirm.
+  assert status 200.
+  assert response.json()["status"] == "confirmed".
+
+tests/functional/integration/test_expenses_extended.py:
+import uuid and pytest.
+use client and unique_suffix fixtures.
+
+helpers needed:
+_create_user(client, unique_suffix, role, tag) — same pattern as above.
+_create_customer(client, unique_suffix) — POST /api/customers.
+_create_plan(client, rep_id, unique_suffix) — POST /api/plans.
+_add_visit(client, plan_id, customer_id, customer_name) — POST /api/plans/{plan_id}/visits.
+_confirm_plan(client, plan_id) — PATCH /api/plans/{plan_id}/confirm.
+_create_expense(client, rep_id, plan_id, unique_suffix) — POST /api/expenses with category "travel",
+  amount 50.00, return json.
+_submit_expense(client, expense_id) — PATCH /api/expenses/{expense_id}/submit, return response.
+_approve_expense(client, expense_id, manager_id) — PATCH /api/expenses/{expense_id}/approve
+  with {"manager_id": manager_id}, return response.
+_reject_expense(client, expense_id, manager_id) — PATCH /api/expenses/{expense_id}/reject
+  with {"manager_id": manager_id}, return response.
+
+test_approve_rejected_expense_returns_409:
+  create rep, manager, customer, plan, visit, confirm plan, expense.
+  submit expense, reject expense.
+  PATCH /api/expenses/{expense_id}/approve with {"manager_id": manager_id}.
+  assert status 409.
+
+test_approve_submitted_expense_returns_409:
+  note: submitted state (before calling /submit) cannot be approved directly.
+  create expense (status=submitted on creation).
+  do not call /submit.
+  PATCH /api/expenses/{expense_id}/approve with {"manager_id": manager_id}.
+  assert status 409.
+
+test_reject_already_rejected_expense_returns_409:
+  create expense, submit, reject.
+  PATCH /api/expenses/{expense_id}/reject again.
+  assert status 409.
+
+test_resubmit_submitted_expense_returns_409:
+  create expense (status=submitted).
+  do not call /submit or /reject.
+  PATCH /api/expenses/{expense_id}/resubmit.
+  assert status 409.
+
+test_resubmit_pending_approval_expense_returns_409:
+  create expense, submit (now pending_approval).
+  PATCH /api/expenses/{expense_id}/resubmit.
+  assert status 409.
+
+test_list_expenses_filtered_by_status:
+  create rep, manager, customer, plan, visit, confirm plan.
+  create two expenses.
+  submit and approve the first.
+  leave the second as submitted.
+  GET /api/expenses?expense_status=approved.
+  assert status 200.
+  assert all returned expenses have status "approved".
+
+test_read_status_endpoint_returns_expenses:
+  create rep, manager, customer, plan, visit, confirm plan, expense.
+  submit and approve.
+  GET /api/expenses/read/status/approved.
+  assert status 200.
+  assert response.json() is a list.
+  assert at least one expense has status "approved".
+
+test_read_status_approved_only_returns_approved:
+  create expense, submit, approve.
+  GET /api/expenses/read/status/approved.
+  assert all items in response have status "approved".
+
+test_read_status_rejected_only_returns_rejected:
+  create expense, submit, reject.
+  GET /api/expenses/read/status/rejected.
+  assert all items in response have status "rejected".
+
+test_read_status_submitted_returns_submitted:
+  create expense (initial status=submitted).
+  GET /api/expenses/read/status/submitted.
+  assert status 200.
+  assert response.json() is a list.
+  assert at least one item exists.
+
+test_read_status_pending_approval_returns_pending:
+  create expense, submit.
+  GET /api/expenses/read/status/pending_approval.
+  assert status 200.
+  assert at least one item has status "pending_approval".
+
+tests/functional/integration/test_cqrs_extended.py:
+import pytest.
+use client and unique_suffix fixtures.
+
+helpers: same _create_user, _create_customer, _create_plan, _add_visit, _confirm_plan,
+_activate_plan, _complete_plan, _create_expense, _submit_expense, _approve_expense, _reject_expense.
+
+test_plan_history_reflects_active_status:
+  create rep, customer, plan, add visit, confirm, activate.
+  GET /api/plans/read/history?rep_id={rep_id}.
+  assert status 200.
+  find the plan row by plan_id.
+  assert row status == "active".
+
+test_plan_history_reflects_completed_status:
+  create rep, customer, plan, add visit, confirm, activate, complete.
+  GET /api/plans/read/history?rep_id={rep_id}.
+  find the plan row.
+  assert row status == "completed".
+
+test_plan_history_date_filter_returns_matching_plans:
+  create rep, plan with date "2025-06-01".
+  GET /api/plans/read/history?rep_id={rep_id}&date=2025-06-01.
+  assert status 200.
+  assert all returned rows have date matching "2025-06-01".
+  assert at least one row is returned.
+
+test_plan_history_date_filter_no_match_returns_empty:
+  create rep, plan with date "2025-06-01".
+  GET /api/plans/read/history?rep_id={rep_id}&date=2099-01-01.
+  assert status 200.
+  assert response.json() is an empty list.
+
+test_expense_history_reflects_rejected_status:
+  create rep, manager, customer, plan, visit, confirm plan, expense.
+  submit expense, reject expense.
+  GET /api/expenses/read/history?rep_id={rep_id}.
+  assert status 200.
+  find the expense row by expense_id.
+  assert row status == "rejected".
+
+test_expense_history_reflects_resubmitted_status:
+  create expense, submit, reject, resubmit.
+  GET /api/expenses/read/history?rep_id={rep_id}.
+  find the expense row.
+  assert row status == "submitted".
+
+test_expense_history_status_filter_returns_matching:
+  create expense, submit, approve.
+  GET /api/expenses/read/history?status=approved.
+  assert status 200.
+  assert all returned rows have status "approved".
+
+test_expense_history_status_filter_approved_only:
+  create two expenses for the same rep.
+  approve the first, reject the second.
+  GET /api/expenses/read/history?rep_id={rep_id}&status=approved.
+  assert only the approved expense appears.
+
+general standards:
+all test functions are async def with pytest.mark.anyio.
+use client and unique_suffix fixtures.
+no sleeps or polling.
+each test creates its own isolated data.
+helpers are plain async functions, not fixtures.
+use uuid.uuid4() for unknown IDs in negative tests.
