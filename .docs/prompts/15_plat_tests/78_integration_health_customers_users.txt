@@ -1,0 +1,219 @@
+Create the functional integration test directory and the first three integration test files.
+
+context:
+base URL for all gateway tests is http://localhost:8080.
+the KinD cluster is running with Calico, Istio, and the full observability stack.
+the functional conftest.py already defines client (httpx.AsyncClient at localhost:8080) and unique_suffix.
+health endpoints are internal to each service and not routed through the Istio gateway.
+health tests use kubectl port-forward to expose each service directly on a unique local port.
+all tests are async using pytest with anyio.
+do not touch anything in tests/ outside tests/functional/.
+
+files to create:
+tests/functional/integration/__init__.py (empty)
+tests/functional/integration/test_health.py
+tests/functional/integration/test_customers_extended.py
+tests/functional/integration/test_users_extended.py
+
+tests/functional/integration/__init__.py:
+empty file.
+
+tests/functional/integration/test_health.py:
+read the existing conftest.py at tests/functional/conftest.py before writing.
+do not import the client fixture from conftest — these tests use direct port-forwards, not the gateway.
+import subprocess, time, httpx, pytest.
+define a helper function port_forward(service_name, local_port, remote_port, namespace="svp") that:
+  starts kubectl port-forward svc/{service_name} {local_port}:{remote_port} -n {namespace} as a background subprocess.
+  sleeps 2 seconds to allow the port-forward to establish.
+  yields the local_port.
+  terminates the subprocess on teardown.
+implement this as a pytest fixture using yield.
+
+define four module-scoped fixtures, one per service:
+  customer_user_health_port: port-forwards svc/customer-user-service local 18001 to remote 8001, yields 18001.
+  planning_health_port: port-forwards svc/planning-service local 18002 to remote 8002, yields 18002.
+  expense_health_port: port-forwards svc/expense-service local 18003 to remote 8003, yields 18003.
+  frontend_health_port: port-forwards svc/frontend-service local 18000 to remote 8000, yields 18000.
+
+test_customer_user_service_health_returns_200:
+  uses customer_user_health_port fixture.
+  GET http://localhost:{port}/health.
+  assert response.status_code == 200.
+
+test_planning_service_health_returns_200:
+  uses planning_health_port fixture.
+  GET http://localhost:{port}/health.
+  assert response.status_code == 200.
+
+test_expense_service_health_returns_200:
+  uses expense_health_port fixture.
+  GET http://localhost:{port}/health.
+  assert response.status_code == 200.
+
+test_frontend_service_health_returns_200:
+  uses frontend_health_port fixture.
+  GET http://localhost:{port}/health.
+  assert response.status_code == 200.
+
+test_customer_user_service_health_body_ok:
+  uses customer_user_health_port fixture.
+  GET http://localhost:{port}/health.
+  assert response.json() contains key "status" with value "ok".
+
+test_planning_service_health_body_ok:
+  uses planning_health_port.
+  same assertion.
+
+test_expense_service_health_body_ok:
+  uses expense_health_port.
+  same assertion.
+
+test_frontend_service_health_body_ok:
+  uses frontend_health_port.
+  same assertion.
+
+tests/functional/integration/test_customers_extended.py:
+all requests go through the gateway at http://localhost:8080.
+all tests are async, use the client and unique_suffix fixtures from tests/functional/conftest.py.
+import uuid at the top for generating unknown IDs.
+all test functions are prefixed with test_.
+
+helper: create a customer via POST /api/customers and return the response JSON.
+use this helper inside tests that need an existing customer rather than repeating the creation logic.
+
+test_patch_customer_updates_name:
+  create a customer with a known name.
+  PATCH /api/customers/{id} with {"name": "Updated Name {unique_suffix}"}.
+  assert response.status_code == 200.
+  assert response.json()["name"] starts with "Updated Name".
+
+test_patch_customer_updates_address:
+  create a customer.
+  PATCH /api/customers/{id} with {"address": "New Address {unique_suffix}"}.
+  assert status 200.
+  assert response.json()["address"] starts with "New Address".
+
+test_patch_customer_updates_lat_lng:
+  create a customer.
+  PATCH /api/customers/{id} with {"lat": 53.3498, "lng": -6.2603}.
+  assert status 200.
+  assert response.json()["lat"] == 53.3498.
+  assert response.json()["lng"] == -6.2603.
+
+test_patch_customer_updates_assigned_rep_id:
+  create a sales_rep user via POST /api/users.
+  create a customer.
+  PATCH /api/customers/{customer_id} with {"assigned_rep_id": rep_id}.
+  assert status 200.
+  assert response.json()["assigned_rep_id"] == str(rep_id).
+
+test_patch_customer_unknown_id_returns_404:
+  PATCH /api/customers/{uuid.uuid4()} with {"name": "x"}.
+  assert status 404.
+
+test_flag_customer_with_manager_sets_priority:
+  create a manager user via POST /api/users with role "manager".
+  create a customer.
+  PATCH /api/customers/{customer_id}/flag with header X-User-Id: {manager_id}.
+  assert status 200.
+  assert response.json()["is_priority"] == True.
+
+test_flag_customer_without_header_returns_403:
+  create a customer.
+  PATCH /api/customers/{customer_id}/flag with no X-User-Id header.
+  assert status 403.
+
+test_flag_customer_with_sales_rep_returns_403:
+  create a sales_rep user.
+  create a customer.
+  PATCH /api/customers/{customer_id}/flag with header X-User-Id: {rep_id}.
+  assert status 403.
+
+test_flag_customer_with_invalid_uuid_header_returns_400:
+  create a customer.
+  PATCH /api/customers/{customer_id}/flag with header X-User-Id: "not-a-uuid".
+  assert status 400.
+
+test_assign_customer_to_rep:
+  create a sales_rep user.
+  create a customer.
+  PATCH /api/customers/{customer_id}/assign with {"rep_id": rep_id}.
+  assert status 200.
+  assert response.json()["assigned_rep_id"] == str(rep_id).
+
+test_assign_customer_unknown_id_returns_404:
+  PATCH /api/customers/{uuid.uuid4()}/assign with {"rep_id": str(uuid.uuid4())}.
+  assert status 404.
+
+tests/functional/integration/test_users_extended.py:
+all requests go through the gateway at http://localhost:8080.
+all tests are async, use client and unique_suffix fixtures.
+import uuid at the top.
+
+helper: create a user with a given role and unique_suffix and return the response JSON.
+
+test_patch_user_updates_name:
+  create a sales_rep user.
+  PATCH /api/users/{id} with {"name": "Updated {unique_suffix}"}.
+  assert status 200.
+  assert response.json()["name"] starts with "Updated".
+
+test_patch_user_updates_email:
+  create a sales_rep user.
+  PATCH /api/users/{id} with {"email": "updated_{unique_suffix}@example.com"}.
+  assert status 200.
+  assert "updated_" in response.json()["email"].
+
+test_patch_user_updates_role:
+  create a sales_rep user.
+  PATCH /api/users/{id} with {"role": "manager"}.
+  assert status 200.
+  assert response.json()["role"] == "manager".
+
+test_patch_user_unknown_id_returns_404:
+  PATCH /api/users/{uuid.uuid4()} with {"name": "x"}.
+  assert status 404.
+
+test_patch_user_duplicate_email_returns_409:
+  create two sales_rep users with different emails.
+  PATCH the second user with the email of the first user.
+  assert status 409.
+
+test_delete_user_with_administrator_returns_204:
+  create an administrator user via POST /api/users with role "administrator".
+  create a second sales_rep user to be deleted.
+  DELETE /api/users/{rep_id} with header X-User-Id: {admin_id}.
+  assert status 204.
+
+test_delete_user_without_header_returns_403:
+  create a sales_rep user.
+  DELETE /api/users/{id} with no X-User-Id header.
+  assert status 403.
+
+test_delete_user_with_non_administrator_returns_403:
+  create a manager user.
+  create a sales_rep user.
+  DELETE /api/users/{rep_id} with header X-User-Id: {manager_id}.
+  assert status 403.
+
+test_delete_user_unknown_id_returns_404:
+  create an administrator user.
+  DELETE /api/users/{uuid.uuid4()} with header X-User-Id: {admin_id}.
+  assert status 404.
+
+test_get_user_after_delete_returns_404:
+  create an administrator user.
+  create a sales_rep user.
+  DELETE /api/users/{rep_id} with header X-User-Id: {admin_id}.
+  GET /api/users/{rep_id}.
+  assert status 404.
+
+general standards:
+all test functions are async def.
+use pytest.mark.anyio on each async test or set asyncio_mode in conftest.
+use the client fixture for all HTTP calls.
+no sleeps or polling — these are synchronous request/response tests.
+use pathlib.Path if any file access is needed.
+no mocking.
+each test is independent and creates its own data.
+user creation always uses unique_suffix to avoid email collisions across test runs.
