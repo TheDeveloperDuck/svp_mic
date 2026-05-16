@@ -4,7 +4,6 @@ import httpx
 import pytest
 
 
-
 @pytest.fixture(scope="function")
 async def client():
     async with httpx.AsyncClient(base_url="http://localhost:8080", timeout=30.0) as c:

@@ -160,40 +160,46 @@ async def consume_plan_confirmed() -> None:
     until the task is cancelled.  Exceptions raised by individual messages
     are caught and logged so the loop continues running.
     """
-    consumer = AIOKafkaConsumer(
-        _CONSUME_TOPIC,
-        bootstrap_servers=_BOOTSTRAP_SERVERS,
-        group_id=_GROUP_ID,
-        auto_offset_reset="earliest",
-    )
-
-    try:
-        await consumer.start()
-        logger.info(
-            "plan.confirmed consumer started (group=%s, topic=%s).",
-            _GROUP_ID,
+    while True:
+        consumer = AIOKafkaConsumer(
             _CONSUME_TOPIC,
+            bootstrap_servers=_BOOTSTRAP_SERVERS,
+            group_id=_GROUP_ID,
+            auto_offset_reset="earliest",
         )
-        async for msg in consumer:
-            try:
-                data = json.loads(msg.value.decode("utf-8"))
-                logger.debug(
-                    "Received plan.confirmed message at offset %s.", msg.offset
-                )
-                await _handle_plan_confirmed(data)
-            except Exception as exc:
-                logger.error(
-                    "Error processing plan.confirmed message at offset %s: %s",
-                    msg.offset,
-                    exc,
-                )
-    except asyncio.CancelledError:
-        logger.info("plan.confirmed consumer shutting down.")
-    except Exception as exc:
-        logger.error(
-            "plan.confirmed consumer encountered a fatal error: %s", exc
-        )
-        raise
-    finally:
-        await consumer.stop()
-        logger.info("plan.confirmed consumer stopped.")
+        try:
+            await consumer.start()
+            logger.info(
+                "plan.confirmed consumer started (group=%s, topic=%s).",
+                _GROUP_ID,
+                _CONSUME_TOPIC,
+            )
+            async for msg in consumer:
+                try:
+                    data = json.loads(msg.value.decode("utf-8"))
+                    logger.debug(
+                        "Received plan.confirmed message at offset %s.",
+                        msg.offset,
+                    )
+                    await _handle_plan_confirmed(data)
+                except Exception as exc:
+                    logger.error(
+                        "Error processing plan.confirmed message"
+                        " at offset %s: %s",
+                        msg.offset,
+                        exc,
+                    )
+        except asyncio.CancelledError:
+            logger.info("plan.confirmed consumer shutting down.")
+            await consumer.stop()
+            return
+        except Exception as exc:
+            logger.warning(
+                "plan.confirmed consumer connection failed, retrying in 5s: %s",
+                exc,
+            )
+            await consumer.stop()
+            await asyncio.sleep(5)
+        else:
+            await consumer.stop()
+            logger.info("plan.confirmed consumer stopped.")

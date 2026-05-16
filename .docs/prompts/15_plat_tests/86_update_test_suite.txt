@@ -1,0 +1,152 @@
+Make three changes across three files.                                                                                                        
+                                                                                                                                                
+  ====                                                                                                                                          
+                                                                                                                                                
+  file: tests/stress/resilience/test_pod_failure.py                                                                                             
+                                                                                                                                                
+  move test_all_app_pods_recover_within_60_seconds to the very end of                                                                           
+  the file. cut it from its current position and paste it as the last                                                                           
+  function. no changes to the test body.                                                                                                        
+                                                                                                                                                
+  ====                                                                                                                                          
+                                                                                                                                                
+  file: tests/stress/conftest.py                                                                                                                
+                                                                                                                                                
+  add import time at the top with the other imports if not already present.                                                                     
+                                                                                                                                                
+  define a module-level helper start_port_forwards():                                                                                           
+    kill any existing port-forwards on ports 8080, 9090, 16686:                                                                                 
+      subprocess.run(["pkill", "-f", "port-forward.*8080"],                                                                                     
+        capture_output=True)                                                                                                                    
+      subprocess.run(["pkill", "-f", "port-forward.*9090"],                                                                                     
+        capture_output=True)                                                                                                                    
+      subprocess.run(["pkill", "-f", "port-forward.*16686"],                                                                                    
+        capture_output=True)                                                                                                                    
+    time.sleep(2)                                                                                                                               
+    start fresh port-forwards as background processes:                                                                                          
+      subprocess.Popen(                                                                                                                         
+        ["kubectl", "port-forward", "-n", "istio-system",                                                                                       
+         "svc/istio-ingressgateway", "8080:80"],                                                                                                
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,                                                                                   
+      )                                                                                                                                         
+      subprocess.Popen(                                                                                                                         
+        ["kubectl", "port-forward", "-n", "istio-system",                                                                                       
+         "svc/prometheus", "9090:9090"],                                                                                                        
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,                                                                                   
+      )                                                                                                                                         
+      subprocess.Popen(                                                                                                                         
+        ["kubectl", "port-forward", "-n", "istio-system",                                                                                       
+         "svc/tracing", "16686:80"],                                                                                                            
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,                                                                                   
+      )                                                                                                                                         
+    time.sleep(5)                                                                                                                               
+                                                                                                                                                
+  update stress_session_teardown:                                                                                                               
+    before the yield, call start_port_forwards().                                                                                               
+    after the planning-service rollout status call (in the teardown                                                                             
+    section after yield), call start_port_forwards() again.                                                                                     
+    update the print to:                                                                                                                        
+      print("\n[stress teardown] planning-service restarted, port-forwards restarted")                                                          
+                                                                                                                                                
+  ====                                                                                                                                          
+                                                                                                                                                
+  file: tests/functional/conftest.py                                                                                                            
+                                                                                                                                                
+  add import subprocess and import time at the top with the other imports.                                                                      
+                                                                                                                                                
+  define the same start_port_forwards() helper (identical to the one                                                                            
+  in tests/stress/conftest.py).                                                                                                                 
+                                                                                                                                                
+  add a session-scoped autouse fixture named functional_session_setup                                                                           
+  immediately before the existing client fixture:                                                                                               
+                                                                                                                                                
+  @pytest.fixture(scope="session", autouse=True)                                                                                                
+  def functional_session_setup():                                                                                                               
+      start_port_forwards()                                                                                                                     
+      print("\n[functional setup] port-forwards started")                                                                                       
+                                                                                                                                                
+  no other changes to this file. Also configure pytest logging to write test output to log files.                                               
+                                                                                                                                                
+  file: pytest.ini (create if it does not exist, update if it does)                                                                             
+                                                                                                                                                
+  add the following configuration:                                                                                                              
+                                                                                                                                                
+  [pytest]                                                                                                                                      
+  asyncio_mode = auto                                                                                                                           
+  log_cli = false                                                                                                                               
+  log_file_level = DEBUG                                                                                                                        
+  log_format = %(asctime)s %(levelname)-8s %(name)s %(message)s                                                                                 
+  log_date_format = %Y-%m-%d %H:%M:%S                                                                                                           
+                                                                                                                                                
+  ====                                                                                                                                          
+                                                                                                                                                
+  file: tests/conftest.py (create at the project root tests/ directory)                                                                         
+                                                                                                                                                
+  this file runs before any test collection and creates a log file for                                                                          
+  the session with a name based on the test path and current datetime.                                                                          
+                                                                                                                                                
+  import datetime                                                                                                                               
+  import logging                                                                                                                                
+  import os                                                                                                                                     
+  import pathlib                                                                                                                                
+  import sys                                                                                                                                    
+                                                                                                                                                
+  import pytest                                                                                                                                 
+                                                                                                                                                
+  LOG_DIR = pathlib.Path(__file__).parent.parent / "test_logs"                                                                                  
+                                                                                                                                                
+  def pytest_configure(config):                                                                                                                 
+      LOG_DIR.mkdir(exist_ok=True)                                                                                                              
+                                                                                                                                                
+      # determine suite type and subtype from the test paths supplied                                                                           
+      # e.g. "pytest tests/functional/e2e" -> type=functional subtype=e2e                                                                       
+      # e.g. "pytest tests/stress" -> type=stress subtype=all                                                                                   
+      # e.g. "pytest tests/functional" -> type=functional subtype=all                                                                           
+      args = config.invocation_params.args                                                                                                      
+      suite_type = "all"                                                                                                                        
+      suite_subtype = "all"                                                                                                                     
+                                                                                                                                                
+      for arg in args:                                                                                                                          
+          if "functional/e2e" in arg:                                                                                                           
+              suite_type, suite_subtype = "functional", "e2e"                                                                                   
+          elif "functional/integration" in arg:                                                                                                 
+              suite_type, suite_subtype = "functional", "integration"                                                                           
+          elif "functional/regression" in arg:                                                                                                  
+              suite_type, suite_subtype = "functional", "regression"                                                                            
+          elif "functional/unit" in arg:                                                                                                        
+              suite_type, suite_subtype = "functional", "unit"                                                                                  
+          elif "functional" in arg:                                                                                                             
+              suite_type, suite_subtype = "functional", "all"                                                                                   
+          elif "stress/concurrent" in arg:                                                                                                      
+              suite_type, suite_subtype = "stress", "concurrent"                                                                                
+          elif "stress/resilience" in arg:                                                                                                      
+              suite_type, suite_subtype = "stress", "resilience"                                                                                
+          elif "stress" in arg:                                                                                                                 
+              suite_type, suite_subtype = "stress", "all"                                                                                       
+                                                                                                                                                
+      now = datetime.datetime.now().strftime("%H%M_%Y%m%d")                                                                                     
+      log_filename = f"{suite_type}_{suite_subtype}_{now}.log"                                                                                  
+      log_path = LOG_DIR / log_filename                                                                                                         
+                                                                                                                                                
+      file_handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")                                                                  
+      file_handler.setLevel(logging.DEBUG)                                                                                                      
+      formatter = logging.Formatter(                                                                                                            
+          "%(asctime)s %(levelname)-8s %(name)s %(message)s",                                                                                   
+          datefmt="%Y-%m-%d %H:%M:%S",                                                                                                          
+      )                                                                                                                                         
+      file_handler.setFormatter(formatter)                                                                                                      
+      logging.getLogger().addHandler(file_handler)                                                                                              
+      logging.getLogger().setLevel(logging.DEBUG)                                                                                               
+                                                                                                                                                
+      # store path so it can be printed at session end                                                                                          
+      config._log_file_path = log_path                                                                                                          
+                                                                                                                                                
+  def pytest_sessionfinish(session, exitstatus):                                                                                                
+      log_path = getattr(session.config, "_log_file_path", None)                                                                                
+      if log_path:                                                                                                                              
+          print(f"\n[log] test output written to {log_path}")                                                                                   
+                                                                                                                                                
+  ====                                                                                                                                          
+                                                                                                                                                
+  also add test_logs/ to .gitignore if a .gitignore exists at the                                                                               
+  project root.                                                                                                                                 

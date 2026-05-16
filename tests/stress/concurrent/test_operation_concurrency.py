@@ -219,7 +219,7 @@ async def test_10_concurrent_saga_triggers():
 @pytest.mark.stress
 async def test_50_concurrent_saga_triggers():
     # allow cluster to stabilise after previous heavy test
-    await asyncio.sleep(5)
+    await asyncio.sleep(15)
     suffix = secrets.token_hex(4)
     start = time.monotonic()
 

@@ -56,7 +56,7 @@ async def test_delay_injection_increases_median_latency():
     try:
         time.sleep(2)
         async with make_client() as client:
-            latencies = await measure_latencies(client)
+            latencies = await measure_latencies(client, n=20)
         med = statistics.median(latencies)
         print(
             f"\n[delay injection] median={med:.3f}s "

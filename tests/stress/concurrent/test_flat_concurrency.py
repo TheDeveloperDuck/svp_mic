@@ -160,6 +160,8 @@ async def test_flat_post_users(n):
 @pytest.mark.anyio
 @pytest.mark.stress
 async def test_overload_150_concurrent_customers():
+    # allow cluster to recover after heavy POST tests
+    await asyncio.sleep(10)
     n = 150
     start = time.monotonic()
     async with make_client() as client:
@@ -182,6 +184,8 @@ async def test_overload_150_concurrent_customers():
 @pytest.mark.anyio
 @pytest.mark.stress
 async def test_overload_200_concurrent_customers():
+    # allow cluster to recover after heavy POST tests
+    await asyncio.sleep(5)
     n = 200
     start = time.monotonic()
     async with make_client() as client:

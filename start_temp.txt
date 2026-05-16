@@ -7,3 +7,4 @@ kubectl port-forward -n istio-system svc/prometheus 9090:9090 &
 kubectl port-forward -n istio-system svc/tracing 16686:80 &
 
 pytest tests/functional/ -v
+pytest tests/stress/ -v
