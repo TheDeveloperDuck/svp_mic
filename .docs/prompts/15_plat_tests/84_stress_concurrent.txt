@@ -1,0 +1,223 @@
+Create the stress test suite for concurrent load testing.
+
+context:
+base URL is http://localhost:8080.
+all tests are async with anyio.
+all tests are marked @pytest.mark.stress.
+tests at 100 concurrent users and below assert zero 5xx errors.
+tests above 100 concurrent users assert graceful degradation — some errors are allowed,
+  the system must not return all 503s or refuse all connections.
+on a KinD laptop cluster, levels above 100 are expected to degrade — mark them clearly.
+import asyncio, httpx, time, pytest, secrets, statistics at the top.
+do not import from tests/functional/conftest.py — define a local async client helper.
+do not touch tests/functional/.
+
+files to create:
+tests/stress/conftest.py
+tests/stress/__init__.py (empty)
+tests/stress/concurrent/__init__.py (empty)
+tests/stress/concurrent/test_flat_concurrency.py
+tests/stress/concurrent/test_burst_patterns.py
+tests/stress/concurrent/test_operation_concurrency.py
+
+tests/stress/conftest.py:
+define BASE_URL = "http://localhost:8080".
+define make_client() returning httpx.AsyncClient(base_url=BASE_URL, timeout=30.0).
+define async helper create_user(client, suffix, role="sales_rep") POSTing to /api/users.
+define async helper create_customer(client, suffix) POSTing to /api/customers.
+register pytest markers: stress, anyio.
+
+====
+
+tests/stress/concurrent/test_flat_concurrency.py:
+
+define STRICT_LEVELS = [1, 2, 5, 10, 20, 25, 50, 75, 100]
+  at these levels: assert zero 5xx errors.
+
+define DEGRADED_LEVELS = [150, 200, 500]
+  at these levels: assert at least 50% of responses are 200 or 429 (not 5xx).
+  assert the system does not refuse all connections (at least one response received).
+
+define a helper async run_concurrent(client, method, path, n, bodies=None):
+  fires n concurrent requests using asyncio.gather.
+  returns list of status codes.
+
+---- flat GET tests ----
+
+parametrize test_flat_get_customers over STRICT_LEVELS + DEGRADED_LEVELS.
+  for strict levels: n concurrent GET /api/customers, assert zero 5xx.
+  for degraded levels: assert graceful degradation as above.
+
+parametrize test_flat_get_plans over same levels for GET /api/plans.
+parametrize test_flat_get_expenses over same levels for GET /api/expenses.
+
+---- flat POST tests (strict levels only, 1-100) ----
+
+parametrize test_flat_post_customers over STRICT_LEVELS only.
+  create N customers concurrently with unique suffixes using secrets.token_hex(4).
+  assert zero 5xx at all levels.
+
+parametrize test_flat_post_users over STRICT_LEVELS only.
+  same for POST /api/users with unique emails.
+  assert zero 5xx at all levels.
+
+---- overload tests (separate named tests, not parametrized) ----
+
+test_overload_150_concurrent_customers:
+  @pytest.mark.stress
+  150 concurrent GET /api/customers.
+  assert at least 75% are 200.
+  assert not all responses are 5xx or connection errors.
+
+test_overload_200_concurrent_customers:
+  @pytest.mark.stress
+  200 concurrent GET /api/customers.
+  assert at least 50% are 200.
+
+test_overload_500_concurrent_customers:
+  @pytest.mark.stress
+  500 concurrent GET /api/customers.
+  assert at least one response received.
+  assert not all responses are 5xx (system must not fully collapse).
+  record and print: total time, success rate, error rate.
+
+====
+
+tests/stress/concurrent/test_burst_patterns.py:
+
+all tests @pytest.mark.stress and @pytest.mark.anyio.
+
+---- ramp and hold ----
+
+test_ramp_1_to_100_over_30_seconds_then_hold:
+  ramp from 1 to 100 in 10 equal steps of 10 users, one step every 3 seconds.
+  at each step send that many concurrent GET /api/customers.
+  record 5xx count per step.
+  assert zero 5xx at every step up to and including 50 users.
+  assert system does not fully collapse at 75 or 100 (at least 80% success).
+  hold at 100 concurrent for an additional 10 seconds (5 rounds of 100).
+  assert zero 5xx during the hold phase.
+
+---- ramp, drop, spike ----
+
+test_ramp_drop_spike:
+  step 1: ramp 1 to 100 over 10 steps, 1 second apart.
+  step 2: drop to 10 concurrent requests for 5 seconds (5 rounds of 1 second).
+  step 3: spike immediately to 200 concurrent requests.
+  assert: during drop phase all responses are 200 (recovery confirmed).
+  assert: during spike phase at least 50% of responses are 200.
+  assert: no 5xx during the drop phase.
+
+---- bursty pattern ----
+
+test_bursty_100_users_repeated_5_times:
+  repeat 5 times: send 100 concurrent GET /api/customers, sleep 10 seconds.
+  record status codes for each burst round.
+  assert zero 5xx in burst rounds 1 and 2 (fresh pool).
+  assert at least 90% success in rounds 3, 4, 5 (pool recovery confirmed).
+  print per-round success rate.
+
+---- cold spike ----
+
+test_cold_spike_0_to_100_no_ramp:
+  sleep 5 seconds to allow connection pools to drain.
+  send 100 concurrent GET /api/customers with no warmup.
+  record time to first response and time to last response.
+  assert all responses are 200 or 429 (no 5xx).
+  print: first response time, last response time, spread.
+
+====
+
+tests/stress/concurrent/test_operation_concurrency.py:
+
+all tests @pytest.mark.stress and @pytest.mark.anyio.
+
+---- mixed reads and writes ----
+
+test_50_concurrent_writes_50_concurrent_reads_simultaneously:
+  concurrently: 50 POST /api/customers with unique suffixes
+                + 50 GET /api/customers.
+  both sets fire at exactly the same time using asyncio.gather.
+  assert zero 5xx on reads.
+  assert zero 5xx on writes.
+  assert all GET responses return valid JSON lists (not malformed).
+  assert no read returns a partially committed state (list type, not error body).
+
+---- saga under load ----
+
+test_10_concurrent_saga_triggers:
+  create 10 customers each on a separate confirmed plan.
+  deactivate all 10 concurrently.
+  poll every 1 second up to 15 seconds for all 10 plans to revert to draft.
+  assert all 10 plans revert within 15 seconds.
+  assert no plan stays permanently in confirmed state.
+
+test_50_concurrent_saga_triggers:
+  @pytest.mark.stress
+  same pattern with 50 customers and plans.
+  assert at least 80% revert to draft within 30 seconds.
+  assert no plan stays permanently stuck in confirmed (Kafka consumer must not stall).
+  print: how many reverted within 10s, 20s, 30s.
+
+test_20_concurrent_customer_deactivations_active_plans:
+  create 20 customers each on a separate active plan.
+  deactivate all 20 concurrently.
+  poll every 1 second up to 20 seconds for all 20 plans to revert to draft.
+  assert all 20 revert within 20 seconds.
+
+---- outbox poller pressure ----
+
+test_100_concurrent_plan_confirmations:
+  create 1 rep, 1 customer, 100 draft plans each with 1 visit.
+  include plan_id in the visit body.
+  confirm all 100 concurrently.
+  assert zero 5xx across all confirm responses.
+  assert all return 200 and status confirmed.
+  poll GET /api/plans/read/history for that rep.
+  assert all 100 appear in the read model within 15 seconds.
+
+---- data volume with concurrency ----
+
+test_10_users_each_creating_100_customers:
+  10 concurrent "users" each create 100 customers with unique suffixes.
+  total 1000 customer creation requests using asyncio.gather.
+  assert zero 5xx.
+  GET /api/customers.
+  assert response is a list (do not assert count >= 1000 due to shared state).
+
+test_100_users_full_lifecycle_concurrently:
+  @pytest.mark.stress
+  for 100 users simultaneously using asyncio.gather:
+    create user, create customer, create plan, add visit (with plan_id in body),
+    confirm plan, activate plan, submit expense (category fuel), approve expense, complete plan.
+  assert zero failures (all 100 lifecycles complete without 4xx or 5xx errors).
+  print: total time for all 100 to complete.
+
+test_20_managers_approving_500_expenses:
+  create 20 manager users.
+  create 1 rep, 1 plan with 1 visit confirmed, 500 expenses in submitted state.
+  submit all 500 first, then approve all 500 concurrently distributing across 20 manager IDs.
+  assert zero 5xx.
+  assert all 500 return 200 with status approved.
+
+---- CQRS consistency under load ----
+
+test_cqrs_consistency_under_concurrent_load:
+  create 1 rep.
+  concurrently: 20 plan creations + 20 GET /api/plans/read/history for that rep.
+  both sets fire simultaneously using asyncio.gather.
+  assert all GET responses return valid JSON lists.
+  assert no 5xx on either operation.
+  assert no read returns an error body in place of a list.
+
+general standards:
+all tests are async def with @pytest.mark.stress and @pytest.mark.anyio.
+use asyncio.gather for all concurrent operations.
+use secrets.token_hex(4) for unique suffixes to prevent collisions.
+measure and print timing for each test (start time, end time, duration).
+no global state between tests — each test creates its own data.
+polling loops: max retries with explicit sleep, never infinite.
+tests above 100 users use relaxed assertions and are clearly marked @pytest.mark.stress.
+tests at 100 and below assert zero 5xx — no exceptions.
+expense category must be "fuel" not "travel".
+plan_id must be included in visit POST request bodies.
