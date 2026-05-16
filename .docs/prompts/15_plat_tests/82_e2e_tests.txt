@@ -1,0 +1,221 @@
+Create the end-to-end test directory and two e2e test files.
+
+context:
+base URL is http://localhost:8080 via Istio ingressgateway.
+all tests are async with anyio.
+use the client and unique_suffix fixtures from tests/functional/conftest.py.
+do not touch anything outside tests/functional/.
+these tests exercise full multi-step flows across multiple services.
+helpers are plain async functions defined at module level, not fixtures.
+
+files to create:
+tests/functional/e2e/__init__.py (empty)
+tests/functional/e2e/test_full_lifecycle.py
+tests/functional/e2e/test_scale_data_volume.py
+
+====
+
+tests/functional/e2e/test_full_lifecycle.py:
+
+helpers to define at the top of the file:
+_create_user(client, suffix, role="sales_rep", tag="a") — POST /api/users,
+  name="User {tag} {suffix}", email="{tag}{suffix}@example.com",
+  password="pass", role=role. return response json.
+_create_customer(client, suffix) — POST /api/customers,
+  name="Customer {suffix}", address="Address {suffix}". return json.
+_create_plan(client, rep_id, suffix) — POST /api/plans,
+  rep_id=rep_id, date="2025-06-01",
+  start_location="Start {suffix}", end_location="End {suffix}". return json.
+_add_visit(client, plan_id, customer_id, customer_name, order=1) —
+  POST /api/plans/{plan_id}/visits,
+  body: plan_id=plan_id, customer_id=customer_id,
+  customer_name=customer_name, scheduled_order=order. return json.
+_add_call(client, plan_id, customer_id, customer_name, order=1) —
+  POST /api/plans/{plan_id}/calls,
+  body: plan_id=plan_id, customer_id=customer_id,
+  customer_name=customer_name, scheduled_order=order. return json.
+_confirm_plan(client, plan_id) — PATCH /api/plans/{plan_id}/confirm. return response.
+_activate_plan(client, plan_id) — PATCH /api/plans/{plan_id}/activate. return response.
+_complete_plan(client, plan_id) — PATCH /api/plans/{plan_id}/complete. return response.
+_create_expense(client, rep_id, plan_id, suffix) — POST /api/expenses,
+  rep_id=rep_id, plan_id=plan_id, category="fuel",
+  amount=50.00, description="Expense {suffix}". return json.
+_submit_expense(client, expense_id) — PATCH /api/expenses/{expense_id}/submit. return response.
+_approve_expense(client, expense_id, manager_id) —
+  PATCH /api/expenses/{expense_id}/approve, json={"manager_id": manager_id}. return response.
+_reject_expense(client, expense_id, manager_id) —
+  PATCH /api/expenses/{expense_id}/reject, json={"manager_id": manager_id}. return response.
+
+test_full_sales_rep_lifecycle:
+  create sales_rep user.
+  create customer.
+  create plan, add visit (plan_id in body), confirm, activate, complete.
+  assert final plan status is "completed".
+
+test_full_expense_lifecycle:
+  create sales_rep and manager users.
+  create customer, plan, add visit, confirm plan.
+  create expense (category fuel), submit, approve.
+  assert final expense status is "approved".
+  assert response json decided_at is not null.
+
+test_full_expense_rejection_and_resubmit:
+  create sales_rep and manager.
+  create customer, plan, add visit, confirm.
+  create expense, submit, reject.
+  PATCH /api/expenses/{expense_id}/resubmit with json={}.
+  assert final status is "submitted".
+
+test_manager_overview_reflects_lifecycle:
+  create rep, customer, plan, visit, confirm, activate, complete.
+  create expense, submit, approve.
+  GET /manager/overview.
+  assert status 200.
+  assert "text/html" in content-type header.
+
+test_cqrs_reflects_all_transitions:
+  create rep, customer, plan, add visit, confirm, activate, complete.
+  GET /api/plans/read/history?rep_id={rep_id}.
+  assert status 200.
+  find the plan row by plan id.
+  assert row status == "completed".
+  assert row visit_count >= 1.
+
+test_customer_deactivation_saga_confirmed_plan:
+  create rep, customer, plan, add visit, confirm.
+  PATCH /api/customers/{customer_id}/deactivate.
+  poll GET /api/plans/{plan_id} up to 10 times with 1 second sleep.
+  assert plan status reverts to "draft" within 10 seconds.
+
+test_customer_deactivation_saga_active_plan:
+  create rep, customer, plan, add visit, confirm, activate.
+  PATCH /api/customers/{customer_id}/deactivate.
+  poll GET /api/plans/{plan_id} up to 10 times with 1 second sleep.
+  assert plan status reverts to "draft".
+
+test_deactivation_with_no_plans:
+  create customer with no plans.
+  PATCH /api/customers/{customer_id}/deactivate.
+  assert status 200.
+  assert response json is_active == False.
+
+test_plan_confirmation_with_active_customers:
+  create rep, two customers.
+  create plan, add two visits (one per customer, orders 1 and 2).
+  confirm plan.
+  assert status "confirmed".
+
+test_plan_confirmation_rolls_back_when_customer_deactivated:
+  create rep, customer, plan, add visit, confirm.
+  PATCH /api/customers/{customer_id}/deactivate.
+  poll for plan status to become "draft" within 10 seconds.
+  assert plan is draft after rollback.
+
+test_full_admin_flow:
+  create administrator user (role="administrator").
+  create sales_rep user.
+  DELETE /api/users/{rep_id} with header X-User-Id: {admin_id}.
+  assert status 204.
+  GET /api/users/{rep_id}.
+  assert status 404.
+
+====
+
+tests/functional/e2e/test_scale_data_volume.py:
+
+import asyncio at the top.
+use client and unique_suffix fixtures.
+all helpers are plain async functions defined at module level.
+reuse the same helper signatures as test_full_lifecycle.py.
+
+test_create_50_users:
+  create 50 sales_rep users concurrently using asyncio.gather.
+  each uses a unique suffix built from unique_suffix + str(i).
+  assert all responses return 201.
+
+test_create_200_customers:
+  create 200 customers concurrently.
+  assert all 201.
+
+test_list_customers_after_volume:
+  create 10 customers then GET /api/customers.
+  assert status 200.
+  assert response is a list.
+
+test_create_50_plans:
+  create 1 rep, then 50 plans concurrently for that rep.
+  assert all 201.
+
+test_add_visits_to_plans:
+  create 1 rep, 1 customer, 10 plans.
+  add 1 visit to each plan concurrently.
+  assert all 201.
+
+test_confirm_plans:
+  create 1 rep, 1 customer, 10 plans, add 1 visit to each.
+  confirm all 10 concurrently.
+  assert all 200.
+
+test_create_100_expenses:
+  create 1 rep, 1 manager, 1 customer, 1 plan, add visit, confirm plan.
+  create 100 expenses concurrently.
+  assert all 201.
+
+test_list_expenses_after_volume:
+  create 1 rep, 1 manager, 1 customer, 1 plan, add visit, confirm plan.
+  create 20 expenses concurrently.
+  GET /api/expenses.
+  assert status 200 and response is a list.
+
+test_approve_expenses:
+  create 1 rep, 1 manager, 1 customer, 1 plan, add visit, confirm plan.
+  create 10 expenses, submit all, approve all concurrently.
+  assert all approve responses return 200.
+
+test_plan_history_response_time:
+  create 1 rep, 5 plans with 1 visit each, confirm all.
+  record start time.
+  GET /api/plans/read/history?rep_id={rep_id}.
+  assert response time under 3 seconds.
+  assert status 200.
+
+test_expense_history_response_time:
+  create 1 rep, 1 manager, 1 customer, 1 plan, add visit, confirm.
+  create 10 expenses, submit all.
+  record start time.
+  GET /api/expenses/read/history?rep_id={rep_id}.
+  assert response time under 3 seconds.
+  assert status 200.
+
+test_concurrent_full_lifecycle_5_reps:
+  for 5 reps simultaneously using asyncio.gather:
+    create user, customer, plan, add visit, confirm, activate,
+    create expense (category fuel), submit, approve.
+  assert zero 4xx or 5xx errors across all 5 lifecycles.
+  each rep uses a unique suffix to avoid collisions.
+
+test_deactivate_customers_with_plans:
+  create 3 customers each on a separate confirmed plan.
+  deactivate all 3 concurrently.
+  poll up to 15 seconds for all 3 associated plans to revert to draft.
+  assert all 3 revert within 15 seconds.
+
+test_cqrs_reflects_completed_for_plans:
+  create 1 rep, 3 plans with 1 visit each.
+  confirm and activate all 3.
+  complete all 3 concurrently.
+  GET /api/plans/read/history?rep_id={rep_id}.
+  assert all 3 plans show status "completed".
+
+====
+
+general standards:
+all tests are async def with @pytest.mark.anyio.
+concurrent operations use asyncio.gather.
+use unique_suffix per test to avoid collisions — append str(i) for indexed items.
+no sleeps except polling loops with explicit max retries.
+polling loops: max 10 retries, 1 second sleep between retries, use asyncio.sleep.
+each test is fully independent and creates its own data.
+plan_id must be included in the request body for all visit and call POST requests.
+expense category must be "fuel" not "travel".
+PATCH visits to "completed" must include outcome_notes in the body.

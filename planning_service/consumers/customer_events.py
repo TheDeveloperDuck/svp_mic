@@ -16,6 +16,7 @@ import os
 import uuid
 
 from aiokafka import AIOKafkaConsumer
+from aiokafka.errors import KafkaConnectionError
 from dotenv import load_dotenv
 from sqlalchemy import select
 
@@ -155,7 +156,25 @@ async def run_customer_events_consumer() -> None:
         auto_offset_reset="earliest",
     )
     try:
-        await consumer.start()
+        while True:
+            try:
+                await consumer.start()
+                break
+            except KafkaConnectionError as exc:
+                logger.warning(
+                    "customer.deactivated consumer connection failed,"
+                    " retrying in 5s: %s",
+                    exc,
+                )
+                await asyncio.sleep(5)
+            except Exception as exc:
+                logger.error(
+                    "customer.deactivated consumer failed to start,"
+                    " retrying in 5s: %s",
+                    exc,
+                )
+                await asyncio.sleep(5)
+
         logger.info(
             "customer.deactivated consumer started (group=%s).",
             _GROUP_ID,
@@ -177,11 +196,6 @@ async def run_customer_events_consumer() -> None:
                 )
     except asyncio.CancelledError:
         logger.info("customer.deactivated consumer shutting down.")
-    except Exception as exc:
-        logger.error(
-            "customer.deactivated consumer fatal error: %s.", exc
-        )
-        raise
     finally:
         await consumer.stop()
         logger.info("customer.deactivated consumer stopped.")
