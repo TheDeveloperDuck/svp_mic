@@ -1,0 +1,9 @@
+python3 plat_scripts/deploy.py
+python3 plat_scripts/install_istio.py
+python3 plat_scripts/install_observability.py
+
+kubectl port-forward -n istio-system svc/istio-ingressgateway 8080:80 &
+kubectl port-forward -n istio-system svc/prometheus 9090:9090 &
+kubectl port-forward -n istio-system svc/tracing 16686:80 &
+
+pytest tests/functional/ -v

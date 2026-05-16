@@ -1,0 +1,321 @@
+Create six integration test files covering authorization policies, network policy enforcement,
+RBAC, ingress routing, observability, and Alembic migrations.
+
+context:
+base URL is http://localhost:8080.
+the KinD cluster has Calico, Istio STRICT mTLS, Prometheus port-forwarded on 9090,
+Jaeger port-forwarded on 16686.
+all async tests use pytest with anyio.
+do not touch anything outside tests/functional/.
+
+files to create:
+tests/functional/integration/test_authorization_policy.py
+tests/functional/integration/test_network_policy_enforcement.py
+tests/functional/integration/test_rbac.py
+tests/functional/integration/test_ingress_routing.py
+tests/functional/integration/test_observability.py
+tests/functional/integration/test_alembic_migrations.py
+
+====
+
+tests/functional/integration/test_authorization_policy.py:
+uses subprocess for kubectl exec tests.
+use client fixture for gateway tests.
+
+define a module-scoped fixture named debug_pod that:
+  runs kubectl run svp-test-pod -n svp --image=curlimages/curl:latest
+    --restart=Never -- sleep 3600
+  waits for the pod to be ready with kubectl wait pod/svp-test-pod
+    -n svp --for=condition=Ready --timeout=60s
+  yields the pod name "svp-test-pod".
+  on teardown runs kubectl delete pod svp-test-pod -n svp --force
+    --grace-period=0 and ignores errors.
+
+test_frontend_to_customer_user_service_allowed:
+  kubectl exec -n svp deployment/svp-frontend-service
+    -c frontend-service --
+    wget -qO- --timeout=5 http://customer-user-service:8001/health
+  assert return code 0.
+  assert "ok" in stdout.
+
+test_frontend_to_planning_service_allowed:
+  same pattern for planning-service:8002.
+
+test_frontend_to_expense_service_allowed:
+  same for expense-service:8003.
+
+test_rogue_pod_to_customer_user_service_denied:
+  kubectl exec svp-test-pod -n svp --
+    wget -qO- --timeout=5 http://customer-user-service:8001/health
+  assert return code non-zero or "ok" not in stdout.
+
+test_rogue_pod_to_planning_service_denied:
+  same for planning-service:8002.
+
+test_rogue_pod_to_expense_service_denied:
+  same for expense-service:8003.
+
+test_rogue_pod_to_frontend_service_denied:
+  same for frontend-service:8000.
+
+test_ingressgateway_to_customer_user_service_allowed:
+  GET /api/customers via client.
+  assert status 200.
+
+test_ingressgateway_to_planning_service_allowed:
+  GET /api/plans via client.
+  assert status 200.
+
+test_ingressgateway_to_expense_service_allowed:
+  GET /api/expenses via client.
+  assert status 200.
+
+test_ingressgateway_to_frontend_service_allowed:
+  GET / via client.
+  assert status 200.
+
+test_direct_clusterip_bypass_denied:
+  result = subprocess.run kubectl get svc customer-user-service
+    -n svp -o jsonpath='{.spec.clusterIP}'
+  cluster_ip = result.stdout.strip()
+  kubectl exec svp-test-pod -n svp --
+    wget -qO- --timeout=5 http://{cluster_ip}:8001/health
+  assert return code non-zero or "ok" not in stdout.
+
+====
+
+tests/functional/integration/test_network_policy_enforcement.py:
+uses subprocess for all tests.
+same module-scoped debug_pod fixture as above.
+
+test_frontend_can_reach_customer_user_service:
+  kubectl exec -n svp deployment/svp-frontend-service
+    -c frontend-service --
+    wget -qO- --timeout=5 http://customer-user-service:8001/health
+  assert return code 0.
+
+test_frontend_can_reach_planning_service:
+  same for planning-service:8002.
+
+test_frontend_can_reach_expense_service:
+  same for expense-service:8003.
+
+test_test_pod_cannot_reach_customer_user_db:
+  kubectl exec svp-test-pod -n svp --
+    nc -zv -w3 customer-user-db 5432
+  assert return code non-zero.
+
+test_test_pod_cannot_reach_planning_db:
+  same for planning-db:5432.
+
+test_test_pod_cannot_reach_expense_db:
+  same for expense-db:5432.
+
+test_test_pod_cannot_reach_redis:
+  kubectl exec svp-test-pod -n svp --
+    nc -zv -w3 redis 6379
+  assert return code non-zero.
+
+test_test_pod_cannot_reach_kafka:
+  kubectl exec svp-test-pod -n svp --
+    nc -zv -w3 kafka 9092
+  assert return code non-zero.
+
+test_customer_user_service_can_reach_kafka:
+  kubectl exec -n svp deployment/svp-customer-user-service
+    -c customer-user-service --
+    nc -zv -w3 kafka 9092
+  assert return code 0.
+
+test_planning_service_can_reach_kafka:
+  same from svp-planning-service -c planning-service.
+
+test_expense_service_can_reach_kafka:
+  same from svp-expense-service -c expense-service.
+
+test_dns_resolution_works_from_svp_pod:
+  kubectl exec -n svp deployment/svp-frontend-service
+    -c frontend-service --
+    nslookup kubernetes.default
+  assert return code 0.
+  assert "Address" in stdout.
+
+test_test_pod_cannot_reach_external_ip:
+  kubectl exec svp-test-pod -n svp --
+    wget -qO- --timeout=5 http://1.1.1.1
+  assert return code non-zero.
+
+====
+
+tests/functional/integration/test_rbac.py:
+all tests use subprocess.
+all are plain def, no async.
+
+test_default_sa_cannot_create_pods:
+  kubectl auth can-i create pods
+    --as=system:serviceaccount:svp:default -n svp
+  assert "no" in result.stdout.lower().
+
+test_default_sa_cannot_delete_pods:
+  kubectl auth can-i delete pods
+    --as=system:serviceaccount:svp:default -n svp
+  assert "no" in result.stdout.lower().
+
+test_default_sa_cannot_get_secrets:
+  kubectl auth can-i get secrets
+    --as=system:serviceaccount:svp:default -n svp
+  assert "no" in result.stdout.lower().
+
+test_no_cluster_admin_binding_in_svp:
+  kubectl get clusterrolebinding -o json
+  parse the JSON.
+  for each binding in items, check if roleRef.name == "cluster-admin".
+  if so, check subjects list for any subject where namespace == "svp".
+  assert none found.
+
+====
+
+tests/functional/integration/test_ingress_routing.py:
+all tests use the client fixture and are async.
+
+test_get_customers_via_gateway:
+  GET /api/customers → assert 200.
+
+test_get_users_via_gateway:
+  GET /api/users → assert 200.
+
+test_get_plans_via_gateway:
+  GET /api/plans → assert 200.
+
+test_get_expenses_via_gateway:
+  GET /api/expenses → assert 200.
+
+test_post_customers_via_gateway:
+  POST /api/customers with {"name": "Test {unique_suffix}",
+    "address": "Test Address {unique_suffix}"}.
+  assert 201.
+
+test_post_plans_via_gateway:
+  POST /api/users to create a rep, then POST /api/plans with valid body.
+  assert 201.
+
+test_patch_plan_confirm_via_gateway:
+  create user, customer, plan, add visit, PATCH /api/plans/{id}/confirm.
+  assert 200.
+  assert response.json()["status"] == "confirmed".
+
+test_unknown_path_returns_frontend:
+  GET /some-unknown-path-xyz-{unique_suffix}.
+  assert 200.
+
+test_root_returns_frontend:
+  GET / → assert 200.
+
+====
+
+tests/functional/integration/test_observability.py:
+uses httpx directly (not the client fixture) for Prometheus and Jaeger calls.
+Prometheus is at http://localhost:9090.
+Jaeger is at http://localhost:16686.
+
+define a module-scoped async fixture named generate_load that:
+  creates an httpx.AsyncClient pointed at http://localhost:8080.
+  sends 10 GET /api/customers requests before yielding.
+  closes the client after yielding.
+  mark with @pytest.fixture(scope="module").
+
+all tests in this file are async and use @pytest.mark.anyio.
+
+test_prometheus_returns_istio_requests_total:
+  async with httpx.AsyncClient() as c:
+    GET http://localhost:9090/api/v1/query
+      with params {"query": "istio_requests_total"}
+  assert status 200.
+  data = response.json()
+  assert data["status"] == "success".
+  assert len(data["data"]["result"]) > 0.
+
+test_prometheus_has_customer_user_service_metrics:
+  query istio_requests_total{destination_service_name="customer-user-service"}.
+  assert at least one result.
+
+test_prometheus_has_planning_service_metrics:
+  same for destination_service_name="planning-service".
+
+test_prometheus_has_expense_service_metrics:
+  same for destination_service_name="expense-service".
+
+test_jaeger_returns_services:
+  async with httpx.AsyncClient() as c:
+    GET http://localhost:16686/api/services
+  assert status 200.
+  assert len(response.json()["data"]) > 0.
+
+test_jaeger_has_traces_after_load:
+  GET http://localhost:16686/api/traces
+    with params {"service": "istio-ingressgateway", "limit": "5"}
+  assert status 200.
+  assert len(response.json()["data"]) > 0.
+
+test_jaeger_trace_contains_multiple_spans:
+  GET http://localhost:16686/api/traces
+    with params {"service": "istio-ingressgateway", "limit": "1"}
+  parse first trace.
+  assert len(trace["spans"]) > 1.
+
+test_prometheus_rate_limit_returns_429:
+  apply k8s/istio/testing/rate-limit.yaml via subprocess kubectl apply.
+  sleep 2 seconds.
+  send 25 concurrent GET /api/customers requests using asyncio.gather
+    with httpx.AsyncClient at http://localhost:8080.
+  status_codes = [r.status_code for r in responses].
+  assert 429 in status_codes.
+  subprocess kubectl delete -f k8s/istio/testing/rate-limit.yaml to restore.
+  sleep 2 seconds.
+
+====
+
+tests/functional/integration/test_alembic_migrations.py:
+all tests use subprocess and are plain def.
+
+test_customer_user_service_init_container_exited_zero:
+  kubectl get pod -n svp -l app=customer-user-service -o json.
+  parse JSON.
+  find initContainerStatuses list.
+  find the container whose name contains "migrate" or "alembic" or "init".
+  assert containerStatus["state"]["terminated"]["exitCode"] == 0.
+
+test_planning_service_init_container_exited_zero:
+  same for label app=planning-service.
+
+test_expense_service_init_container_exited_zero:
+  same for label app=expense-service.
+
+test_customer_user_db_migration_idempotent:
+  get pod name: kubectl get pod -n svp -l app=customer-user-service
+    -o jsonpath='{.items[0].metadata.name}'
+  kubectl exec -n svp {pod} -c customer-user-service --
+    alembic -c customer_user_service/alembic.ini upgrade head
+  assert return code 0.
+
+test_planning_db_migration_idempotent:
+  same for planning-service using planning_service/alembic.ini.
+
+test_expense_db_migration_idempotent:
+  same for expense-service using expense_service/alembic.ini.
+
+test_all_three_services_running_after_migrations:
+  kubectl get pods -n svp -o json.
+  for pods matching customer-user-service, planning-service, expense-service
+    assert status.phase == "Running".
+
+====
+
+general standards:
+all async tests use @pytest.mark.anyio.
+synchronous kubectl tests are plain def with no async decorator.
+subprocess calls use capture_output=True, text=True, timeout=60.
+no mocking.
+each test is independent.
+the debug_pod fixture is defined once per file that needs it
+  (both test_authorization_policy.py and test_network_policy_enforcement.py).
