@@ -1,0 +1,177 @@
+Create a regression test file that ports the original Docker Compose test
+suite to run against the Kubernetes cluster via the Istio ingressgateway.
+
+context:
+the original tests hit http://localhost via nginx.
+the K8s cluster gateway is at http://localhost:8080.
+use the client and unique_suffix fixtures from tests/functional/conftest.py.
+these fixtures already target http://localhost:8080.
+all tests are async def with @pytest.mark.anyio.
+do not use pytest-asyncio mode=auto bare async defs — always use the decorator.
+the saga polling interval must be 1 second (not 0.5s) because the K8s outbox
+poller cycle is 5 seconds, much slower than Docker Compose.
+saga polling attempts must be 20 (not 10) for the same reason.
+do not touch any existing test files.
+
+file to create:
+tests/functional/regression/test_existing_suite_on_k8s.py
+
+also create:
+tests/functional/regression/__init__.py (empty)
+
+====
+
+the file must contain all of the following tests, ported exactly from the
+original Docker Compose suite. preserve all docstrings and test logic.
+the only changes allowed are:
+- add @pytest.mark.anyio decorator to every test function.
+- change polling in saga tests from 10 attempts at 0.5s to 20 attempts at 1s.
+- use fixtures from tests/functional/conftest.py (client, unique_suffix,
+  seed_users, seed_customer, seed_plan) — these are already defined there.
+- seed_plan fixture in conftest.py already includes plan_id in the visit body.
+
+====
+
+helpers needed (define as module-level async functions, same as originals):
+_create_plan(client, rep_id) — POST /api/plans, date 2026-04-15,
+  start_location Dublin, end_location Cork.
+_add_visit(client, plan_id, customer_id, customer_name, scheduled_order=1) —
+  POST /api/plans/{plan_id}/visits, include plan_id in body.
+_confirm_plan(client, plan_id) — PATCH /api/plans/{plan_id}/confirm.
+_activate_plan(client, plan_id) — PATCH /api/plans/{plan_id}/activate.
+_create_expense(client, rep_id, plan_id) — POST /api/expenses, category fuel,
+  amount 25.50.
+_submit_expense(client, expense_id) — PATCH /api/expenses/{expense_id}/submit.
+_approve_expense(client, expense_id, manager_id) — PATCH approve with manager_id.
+_reject_expense(client, expense_id, manager_id) — PATCH reject with manager_id.
+_create_user(client, role) — POST /api/users with secrets.token_hex(4) suffix.
+_create_customer(client) — POST /api/customers with secrets.token_hex(4) suffix.
+_deactivate_customer(client, customer_id) — PATCH deactivate.
+_poll_plan_status(client, plan_id, target_status, attempts=20, interval=1.0)
+  — poll with asyncio.sleep(interval).
+_find_by_id(rows, resource_id) — return first row where id matches.
+
+====
+
+from test_users.py port these 11 tests exactly:
+test_create_sales_rep
+test_create_manager
+test_create_duplicate_email
+test_create_missing_name
+test_create_missing_email
+test_create_missing_password
+test_create_missing_role
+test_create_invalid_role
+test_list_users
+test_get_user_by_id
+test_get_user_nonexistent
+
+====
+
+from test_customers.py port these 8 tests exactly:
+test_create_customer
+test_create_missing_name (customers)
+test_create_missing_address
+test_list_customers
+test_get_customer_by_id
+test_get_customer_nonexistent
+test_deactivate_customer
+test_deactivate_already_inactive
+
+note: test_create_missing_name appears in both users and customers.
+rename the customers version to test_create_customer_missing_name.
+rename the customers version of test_get_customer_nonexistent to
+test_get_customer_nonexistent_customer (to avoid collision with the users
+version). actually, since they are in the same file, suffix all customer
+tests with _customer where names would collide with user tests:
+- test_create_missing_name -> test_create_customer_missing_name
+- test_get_customer_nonexistent -> keep as test_get_customer_nonexistent
+  (already different from test_get_user_nonexistent)
+- test_deactivate_customer -> keep name
+
+====
+
+from test_plans.py port these 17 tests exactly:
+test_create_plan_valid
+test_create_plan_nonexistent_rep_id
+test_create_plan_missing_date
+test_create_plan_missing_start_location
+test_create_plan_missing_end_location
+test_add_visit
+test_add_visit_missing_customer_id
+test_add_visit_missing_scheduled_order
+test_confirm_plan_no_visits
+test_confirm_plan_with_visit
+test_confirm_already_confirmed
+test_activate_confirmed_plan
+test_activate_draft_plan
+test_complete_active_plan
+test_complete_draft_plan
+test_list_plans
+test_get_plan_nonexistent
+
+====
+
+from test_expenses.py port these 14 tests exactly:
+test_create_expense_valid
+test_create_expense_missing_rep_id
+test_create_expense_missing_plan_id
+test_create_expense_missing_category
+test_create_expense_missing_amount
+test_submit_expense
+test_submit_already_pending_expense
+test_approve_pending_expense
+test_approve_already_approved_expense
+test_reject_pending_expense
+test_resubmit_rejected_expense
+test_resubmit_approved_expense
+test_list_expenses
+test_get_expense_nonexistent
+
+====
+
+from test_cqrs.py port these 8 tests exactly:
+test_plan_history_after_create
+test_plan_history_visit_count
+test_plan_history_after_confirm
+test_plan_read_rep
+test_plan_read_active
+test_expense_history_after_create
+test_expense_history_after_approve
+test_expense_read_rep
+
+====
+
+from test_edge_cases.py port these 13 tests exactly:
+test_list_plans_empty_for_unknown_rep
+test_list_expenses_empty_for_unknown_rep
+test_plan_history_empty_for_unknown_rep
+test_expense_history_empty_for_unknown_rep
+test_get_plan_not_found
+test_get_expense_not_found
+test_get_user_not_found
+test_get_customer_not_found
+test_create_plan_empty_body
+test_create_expense_empty_body
+test_create_user_empty_body
+test_create_customer_empty_body
+test_add_visit_unknown_plan
+
+====
+
+from test_saga.py port these 4 tests exactly:
+test_deactivate_customer_no_active_plans
+test_deactivate_customer_confirmed_plan_rolls_back
+test_deactivate_customer_active_plan_rolls_back
+test_deactivate_already_inactive_customer
+
+use _poll_plan_status with attempts=20 and interval=1.0 in all saga tests.
+
+====
+
+standards:
+import uuid, asyncio, secrets at the top.
+import pytest.
+every test function has @pytest.mark.anyio.
+no module-level pytestmark.
+total test count must be 75.
