@@ -11,6 +11,8 @@ spec:
       app: kafka
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
       labels:
         app: kafka
     spec:
